@@ -34,7 +34,7 @@ function ensureAuthenticated (req, res, next) {
 
 defaultConfig.__ensureAuthenticated = ensureAuthenticated;
 
-function ApiServer (app, config) {
+function AceApiServer (app, config) {
   config = _.extend(defaultConfig, config);
 
   // Database
@@ -269,4 +269,4 @@ function ApiServer (app, config) {
   require('./routes/zencode')(config);
 }
 
-module.exports = ApiServer;
+module.exports = AceApiServer;
