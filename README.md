@@ -22,7 +22,7 @@ http://petstore.swagger.io/?url=https://rawgit.com/StudioThomas/ace-api-server/m
 
     ENVIRONMENT=development|testing|production
     DEBUG=false # Change to nano etc
-    CACHE=false
+    CACHE_ENABLED=false
 
     DB_NAME=
     DB_URL=
