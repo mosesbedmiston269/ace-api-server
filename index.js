@@ -94,15 +94,15 @@ function AceApiServer (app, config) {
 
   let cache;
 
-  if (config.cache) {
+  if (config.cache.enabled) {
     cache = lru({
-      max: config.cacheMaxSize,
+      max: config.cache.maxSize,
       length: (item, key) => {
         // const length = Buffer.byteLength(item, 'utf8')
         const length = sizeof(item);
         return length;
       },
-      maxAge: config.cacheMaxAge,
+      maxAge: config.cache.maxAge,
     });
   }
 
@@ -128,12 +128,12 @@ function AceApiServer (app, config) {
     res.set('x-guest-authorised', req.session.guestAuthorised);
     res.set('x-from-cache', false);
 
-    if (config.cache) {
+    if (config.cache.enabled) {
       const key = req.url.replace(`/${config.apiPrefix}`, '');
-      const fromCache = config.cache && cache.has(key) && req.session.guestAuthorised !== true;
+      const fromCache = config.cache.enabled && cache.has(key) && req.session.guestAuthorised !== true;
 
       if (fromCache) {
-        console.log('Cache usage:', Math.round((cache.length / cacheMaxSize) * 100), '%');
+        console.log('Cache usage:', Math.round((cache.length / config.cache.maxSize) * 100), '%');
 
         res.set('x-from-cache', true);
         res.status(200).send(cache.get(key));
@@ -167,7 +167,7 @@ function AceApiServer (app, config) {
   }
 
   function cacheAndSendResponse (req, res, body) {
-    if (config.cache) {
+    if (config.cache.enabled) {
       if (req.session.guestAuthorised && cache.has(req.url)) {
         cache.del(req.url);
       } else {
