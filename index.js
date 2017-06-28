@@ -35,7 +35,7 @@ function ensureAuthenticated (req, res, next) {
 defaultConfig.__ensureAuthenticated = ensureAuthenticated;
 
 function AceApiServer (app, config) {
-  config = _.extend(defaultConfig, config);
+  config = _.merge({}, defaultConfig, config);
 
   // Database
 
