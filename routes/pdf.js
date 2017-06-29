@@ -1,11 +1,11 @@
 const Pdf = require('ace-api/lib/pdf');
 const Helpers = require('ace-api/lib/helpers');
 
-module.exports = (config) => {
+module.exports = (util, config) => {
   const pdfUrl = `${config.assist.url}/pdf/download`;
 
-  config.__router.get('/pdf/view/:template?/:id?.:ext?', (req, res) => {
-    const pdf = new Pdf(config.__db(req), config.pdf.templates, pdfUrl);
+  util.router.get('/pdf/view/:template?/:id?.:ext?', (req, res) => {
+    const pdf = new Pdf(util.extendConfig(config, req).pdf.templates, pdfUrl);
 
     pdf.getPayload(req.params.template || req.query.template, req.params.id || req.query.id)
       .then((payload) => {
@@ -15,12 +15,12 @@ module.exports = (config) => {
 
             res.status(200);
             res.send(pdf);
-          }, config.__handleError.bind(null, res));
-      }, config.__handleError.bind(null, res));
+          }, util.handleError.bind(null, res));
+      }, util.handleError.bind(null, res));
   });
 
-  config.__router.get('/pdf/download/:template?/:id?.:ext?', (req, res) => {
-    const pdf = new Pdf(config.__db(req), config.pdf.templates, pdfUrl);
+  util.router.get('/pdf/download/:template?/:id?.:ext?', (req, res) => {
+    const pdf = new Pdf(util.extendConfig(config, req).pdf.templates, pdfUrl);
 
     pdf.getPayload(req.params.template || req.query.template, req.params.id || req.query.id)
       .then((payload) => {
@@ -30,22 +30,22 @@ module.exports = (config) => {
 
             res.status(200);
             res.send(pdf);
-          }, config.__handleError.bind(null, res));
-      }, config.__handleError.bind(null, res));
+          }, util.handleError.bind(null, res));
+      }, util.handleError.bind(null, res));
   });
 
-  config.__router.get('/pdf/payload/:template?/:id?.:ext?', (req, res) => {
-    const pdf = new Pdf(config.__db(req), config.pdf.templates, pdfUrl);
+  util.router.get('/pdf/payload/:template?/:id?.:ext?', (req, res) => {
+    const pdf = new Pdf(util.extendConfig(config, req).pdf.templates, pdfUrl);
 
     pdf.getPayload(req.params.template || req.query.template, req.params.id || req.query.id)
       .then((payload) => {
         res.status(200);
         res.json(payload);
-      }, config.__handleError.bind(null, res));
+      }, util.handleError.bind(null, res));
   });
 
-  config.__router.get('/pdf/:template?/:id?.:ext?', (req, res) => {
-    const pdf = new Pdf(config.__db(req), config.pdf.templates, pdfUrl);
+  util.router.get('/pdf/:template?/:id?.:ext?', (req, res) => {
+    const pdf = new Pdf(util.extendConfig(config, req).pdf.templates, pdfUrl);
 
     pdf.getPayload(req.params.template || req.query.template, req.params.id || req.query.id)
       .then((payload) => {
@@ -59,6 +59,6 @@ module.exports = (config) => {
             </form>
           </body>
         `);
-      }, config.__handleError.bind(null, res));
+      }, util.handleError.bind(null, res));
   });
 };

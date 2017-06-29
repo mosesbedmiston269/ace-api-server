@@ -5,7 +5,7 @@ const Twitter = require('twitter');
 
 const co = Promise.coroutine;
 
-module.exports = (config) => {
+module.exports = (util, config) => {
 
   const instagram = new Instagram({
     client_id: config.instagram.clientId,
@@ -20,25 +20,25 @@ module.exports = (config) => {
 
   let instagramSettings;
 
-  config.__router.get(/\/social\/twitter\/([^/]+)\/?(.+)?/, config.__useCachedResponse, (req, res) => {
+  util.router.get(/\/social\/twitter\/([^/]+)\/?(.+)?/, util.cacheMiddleware, (req, res) => {
     const method = req.params[0];
     const params = req.params[1].split('/').filter(param => param !== '');
 
     twitter[`${method}Async`](params.join('/'), req.query)
-      .then(config.__cacheAndSendResponse.bind(null, req, res), config.__handleError.bind(null, res));
+      .then(util.cacheAndSendResponse.bind(null, req, res), util.handleError.bind(null, res));
   });
 
-  config.__router.get(/\/social\/instagram\/([^/]+)\/?(.+)?/, config.__useCachedResponse, co(function* (req, res) {
+  util.router.get(/\/social\/instagram\/([^/]+)\/?(.+)?/, util.cacheMiddleware, co(function* (req, res) {
     const method = req.params[0];
     const params = req.params[1].split('/').filter(param => param !== '');
 
     if (!instagramSettings) {
-      const settings = new Settings(config.__db(req));
+      const settings = new Settings(util.extendConfig(config, req));
 
       instagramSettings = yield settings.settings().then(settings => settings.instagram);
 
       if (!instagramSettings.access_token) {
-        config.__handleError(res, new Error('Instagram: access_token required'));
+        util.handleError(res, new Error('Instagram: access_token required'));
         return;
       }
     }
@@ -53,8 +53,8 @@ module.exports = (config) => {
         } catch (error) {
           //
         }
-        config.__cacheAndSendResponse(req, res, result);
-      }, config.__handleError.bind(null, res));
+        util.cacheAndSendResponse(req, res, result);
+      }, util.handleError.bind(null, res));
   }));
 
 };

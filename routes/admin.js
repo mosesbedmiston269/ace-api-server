@@ -3,9 +3,7 @@ const Auth = require('ace-api/lib/auth');
 const Admin = require('ace-api/lib/admin');
 const Roles = require('ace-api/lib/roles');
 
-const ADMIN_TYPES = ['user', 'schema', 'field', 'action', 'taxonomy'];
-
-module.exports = (config) => {
+module.exports = (util, config) => {
 
   /**
    * @swagger
@@ -22,14 +20,14 @@ module.exports = (config) => {
    *      200:
    *        description: User
    */
-  config.__router.get('/admin/user/current.:ext?', config.__ensureAuthenticated, (req, res) => {
-    const admin = new Admin(config.__db(req), config);
+  util.router.get('/admin/user/current.:ext?', util.authMiddleware, (req, res) => {
+    const admin = new Admin(util.extendConfig(config, req));
 
     admin.getUser(req.session.email, req.session.superUser)
-      .then(config.__sendResponse.bind(null, res), config.__handleError.bind(null, res));
+      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
 
-  config.__router.get('/admin/roles.:ext?', config.__ensureAuthenticated, (req, res) => {
+  util.router.get('/admin/roles.:ext?', util.authMiddleware, (req, res) => {
     const roles = _.mapValues(Roles, (role, slug) => {
       role.slug = slug;
       return role;
@@ -38,54 +36,54 @@ module.exports = (config) => {
     res.status(200).send(roles);
   });
 
-  ADMIN_TYPES.forEach((type) => {
+  Admin.TYPES.forEach((type) => {
 
-    config.__router.get(`/admin/${type}/search.:ext?`, config.__ensureAuthenticated, (req, res) => {
-      const admin = new Admin(config.__db(req), config);
+    util.router.get(`/admin/${type}/search.:ext?`, util.authMiddleware, (req, res) => {
+      const admin = new Admin(util.extendConfig(config, req));
 
       admin.search(type, req.query)
-        .then(config.__sendResponse.bind(null, res), config.__handleError.bind(null, res));
+        .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
     });
 
-    config.__router.get(`/admin/${type}/list.:ext?`, config.__ensureAuthenticated, (req, res) => {
-      const admin = new Admin(config.__db(req), config);
+    util.router.get(`/admin/${type}/list.:ext?`, util.authMiddleware, (req, res) => {
+      const admin = new Admin(util.extendConfig(config, req));
 
       admin.list(type, req.query)
-        .then(config.__sendResponse.bind(null, res), config.__handleError.bind(null, res));
+        .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
     });
 
-    config.__router.post(`/admin/${type}.:ext?`, config.__ensureAuthenticated, Auth.requirePermission.bind(null, 'admin'), (req, res) => {
+    util.router.post(`/admin/${type}.:ext?`, util.authMiddleware, Auth.requirePermission.bind(null, 'admin'), (req, res) => {
       const item = req.body.item;
 
       if (type === 'user') {
         item.slug = req.session.slug;
       }
 
-      const admin = new Admin(config.__db(req), config);
+      const admin = new Admin(util.extendConfig(config, req));
 
       admin.create(type, item)
-        .then(config.__sendResponse.bind(null, res), config.__handleError.bind(null, res));
+        .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
     });
 
-    config.__router.get(`/admin/${type}.:ext?`, config.__ensureAuthenticated, Auth.requirePermission.bind(null, 'admin'), (req, res) => {
-      const admin = new Admin(config.__db(req), config);
+    util.router.get(`/admin/${type}.:ext?`, util.authMiddleware, Auth.requirePermission.bind(null, 'admin'), (req, res) => {
+      const admin = new Admin(util.extendConfig(config, req));
 
       admin.read(type, req.query)
-        .then(config.__sendResponse.bind(null, res), config.__handleError.bind(null, res));
+        .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
     });
 
-    config.__router.put(`/admin/${type}.:ext?`, config.__ensureAuthenticated, Auth.requirePermission.bind(null, 'admin'), (req, res) => {
-      const admin = new Admin(config.__db(req), config);
+    util.router.put(`/admin/${type}.:ext?`, util.authMiddleware, Auth.requirePermission.bind(null, 'admin'), (req, res) => {
+      const admin = new Admin(util.extendConfig(config, req));
 
       admin.update(type, req.body.items)
-        .then(config.__sendResponse.bind(null, res), config.__handleError.bind(null, res));
+        .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
     });
 
-    config.__router.delete(`/admin/${type}.:ext?`, config.__ensureAuthenticated, Auth.requirePermission.bind(null, 'admin'), (req, res) => {
-      const admin = new Admin(config.__db(req), config);
+    util.router.delete(`/admin/${type}.:ext?`, util.authMiddleware, Auth.requirePermission.bind(null, 'admin'), (req, res) => {
+      const admin = new Admin(util.extendConfig(config, req));
 
       admin.delete(type, req.body.items)
-        .then(config.__sendResponse.bind(null, res), config.__handleError.bind(null, res));
+        .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
     });
 
   });

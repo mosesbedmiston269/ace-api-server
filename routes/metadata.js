@@ -1,6 +1,6 @@
 const Settings = require('ace-api/lib/settings');
 
-module.exports = (config) => {
+module.exports = (util, config) => {
 
   /**
    * @swagger
@@ -21,13 +21,13 @@ module.exports = (config) => {
    *            description:
    *              type: string
    */
-  config.__router.get('/metadata.:ext?', config.__useCachedResponse, (req, res) => {
-    const settings = new Settings(config.__db(req));
+  util.router.get('/metadata.:ext?', util.cacheMiddleware, (req, res) => {
+    const settings = new Settings(util.extendConfig(config, req));
 
     settings.settings()
       .then((settings) => {
-        config.__cacheAndSendResponse(req, res, settings.metadata);
-      }, config.__handleError.bind(null, res));
+        util.cacheAndSendResponse(req, res, settings.metadata);
+      }, util.handleError.bind(null, res));
   });
 
 };

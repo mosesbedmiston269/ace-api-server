@@ -1,41 +1,41 @@
 const Auth = require('ace-api/lib/auth');
 const Taxonomy = require('ace-api/lib/taxonomy');
 
-module.exports = (config) => {
+module.exports = (util, config) => {
 
-  // config.__router.post('/taxonomy.:ext?', config.__ensureAuthenticated, Auth.requirePermission.bind(null, 'taxonomyCreate'), (req, res) => {
-  //   const taxonomy = new Taxonomy(config.__db(req));
+  // util.router.post('/taxonomy.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'taxonomyCreate'), (req, res) => {
+  //   const taxonomy = new Taxonomy(util.extendConfig(config, req));
 
   //   taxonomy.create(req.body.items[0])
-  //     .then(config.__sendResponse.bind(null, res), config.__handleError.bind(null, res));
+  //     .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   // });
 
-  config.__router.put('/taxonomy.:ext?', config.__ensureAuthenticated, Auth.requirePermission.bind(null, 'taxonomyUpdate'), (req, res) => {
-    const taxonomy = new Taxonomy(config.__db(req));
+  util.router.put('/taxonomy.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'taxonomyUpdate'), (req, res) => {
+    const taxonomy = new Taxonomy(util.extendConfig(config, req));
 
     taxonomy.update(req.body.items[0])
-      .then(config.__sendResponse.bind(null, res), config.__handleError.bind(null, res));
+      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
 
-  config.__router.post('/taxonomy/term.:ext?', config.__ensureAuthenticated, Auth.requirePermission.bind(null, 'taxonomyUpdate'), (req, res) => {
-    const taxonomy = new Taxonomy(config.__db(req));
+  util.router.post('/taxonomy/term.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'taxonomyUpdate'), (req, res) => {
+    const taxonomy = new Taxonomy(util.extendConfig(config, req));
 
     taxonomy.createTerm(req.body.slug, req.body.term, req.session.email)
-      .then(config.__sendResponse.bind(null, res), config.__handleError.bind(null, res));
+      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
 
-  config.__router.put('/taxonomy/term.:ext?', config.__ensureAuthenticated, Auth.requirePermission.bind(null, 'taxonomyUpdate'), (req, res) => {
-    const taxonomy = new Taxonomy(config.__db(req));
+  util.router.put('/taxonomy/term.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'taxonomyUpdate'), (req, res) => {
+    const taxonomy = new Taxonomy(util.extendConfig(config, req));
 
     taxonomy.updateTerm(req.query || req.body)
-      .then(config.__sendResponse.bind(null, res), config.__handleError.bind(null, res));
+      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
 
-  config.__router.delete('/taxonomy/term.:ext?', config.__ensureAuthenticated, Auth.requirePermission.bind(null, 'taxonomyUpdate'), (req, res) => {
-    const taxonomy = new Taxonomy(config.__db(req));
+  util.router.delete('/taxonomy/term.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'taxonomyUpdate'), (req, res) => {
+    const taxonomy = new Taxonomy(util.extendConfig(config, req));
 
     taxonomy.deleteTerm(req.query || req.body)
-      .then(config.__sendResponse.bind(null, res), config.__handleError.bind(null, res));
+      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
 
   /**
@@ -82,10 +82,10 @@ module.exports = (config) => {
    *                    terms:
    *                      type: array
    */
-  config.__router.get('/taxonomy.:ext?', config.__useCachedResponse, (req, res) => {
-    const taxonomy = new Taxonomy(config.__db(req));
+  util.router.get('/taxonomy.:ext?', util.cacheMiddleware, (req, res) => {
+    const taxonomy = new Taxonomy(util.extendConfig(config, req));
 
     taxonomy.read(req.query.slug)
-      .then(config.__cacheAndSendResponse.bind(null, req, res), config.__handleError.bind(null, res));
+      .then(util.cacheAndSendResponse.bind(null, req, res), util.handleError.bind(null, res));
   });
 };

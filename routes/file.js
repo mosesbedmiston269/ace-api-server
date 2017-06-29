@@ -2,37 +2,37 @@ const Auth = require('ace-api/lib/auth');
 const File = require('ace-api/lib/file');
 const S3 = require('ace-api/lib/s3');
 
-module.exports = (config) => {
+module.exports = (util, config) => {
 
-  config.__router.get('/file/search.:ext?', config.__ensureAuthenticated, Auth.requirePermission.bind(null, 'fileRead'), (req, res) => {
-    const file = new File(config.__db(req), config);
+  util.router.get('/file/search.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'fileRead'), (req, res) => {
+    const file = new File(util.extendConfig(config, req));
 
     file.search(req.query)
-      .then(config.__sendResponse.bind(null, res), config.__handleError.bind(null, res));
+      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
 
-  config.__router.post('/file.:ext?', config.__ensureAuthenticated, Auth.requirePermission.bind(null, 'fileCreate'), (req, res) => {
-    const file = new File(config.__db(req), config);
+  util.router.post('/file.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'fileCreate'), (req, res) => {
+    const file = new File(util.extendConfig(config, req));
 
     file.create(req.body.file)
-      .then(config.__sendResponse.bind(null, res), config.__handleError.bind(null, res));
+      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
 
-  config.__router.delete('/file.:ext?', config.__ensureAuthenticated, Auth.requirePermission.bind(null, 'fileDelete'), (req, res) => {
-    const file = new File(config.__db(req), config);
+  util.router.delete('/file.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'fileDelete'), (req, res) => {
+    const file = new File(util.extendConfig(config, req));
 
     file.delete(req.body.file || req.body.files, req.session.slug)
-      .then(config.__sendResponse.bind(null, res), config.__handleError.bind(null, res));
+      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
 
-  config.__router.delete('/file/trashed.:ext?', config.__ensureAuthenticated, Auth.requirePermission.bind(null, 'fileDelete'), (req, res) => {
-    const file = new File(config.__db(req), config);
+  util.router.delete('/file/trashed.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'fileDelete'), (req, res) => {
+    const file = new File(util.extendConfig(config, req));
 
     file.delete('trashed', req.session.slug)
-      .then(config.__sendResponse.bind(null, res), config.__handleError.bind(null, res));
+      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
 
-  config.__router.get('/file/download/s3.:ext?', (req, res) => {
+  util.router.get('/file/download/s3.:ext?', (req, res) => {
     const s3 = new S3(config);
 
     s3.getSignedUrl(req.query.bucket, req.query.key, req.query.filename)
@@ -45,10 +45,10 @@ module.exports = (config) => {
         }
 
         res.redirect(url);
-      }, config.__handleError.bind(null, res));
+      }, util.handleError.bind(null, res));
   });
 
-  // config.__router.all('/file/s3/:filename', (req, res) => {
+  // util.router.all('/file/s3/:filename', (req, res) => {
   //   const s3 = new S3(config);
 
   //   s3.getObject(req.query.bucket, req.query.key)
@@ -60,10 +60,10 @@ module.exports = (config) => {
   //       }
 
   //       res.send(result.Body);
-  //     }, config.__handleError.bind(null, res));
+  //     }, util.handleError.bind(null, res));
   // });
 
-  config.__router.all('/file/s3/:bucket/:slug/:key/:filename', (req, res) => {
+  util.router.all('/file/s3/:bucket/:slug/:key/:filename', (req, res) => {
     const s3 = new S3(config);
 
     s3.getObject(req.params.bucket, `${req.params.slug}/${req.params.key}`)
@@ -75,6 +75,6 @@ module.exports = (config) => {
         }
 
         res.send(result.Body);
-      }, config.__handleError.bind(null, res));
+      }, util.handleError.bind(null, res));
   });
 };

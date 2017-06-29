@@ -4,16 +4,16 @@ const formidable = require('formidable');
 
 const Transcode = require('ace-api/lib/transcode');
 
-module.exports = (config) => {
+module.exports = (util, config) => {
   const transcode = new Transcode(config);
   const uploads = {};
 
-  config.__router.get('/transcode/job.:ext?', config.__ensureAuthenticated, (req, res) => {
+  util.router.get('/transcode/job.:ext?', util.authMiddleware, (req, res) => {
     transcode.getJob(req.query.id)
-      .then(config.__sendResponse.bind(null, res), config.__handleError.bind(null, res));
+      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
 
-  config.__router.options('/transcode/upload.:ext?', (req, res) => {
+  util.router.options('/transcode/upload.:ext?', (req, res) => {
     res.set({
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET,PUT,POST,DELETE,OPTIONS',
@@ -23,7 +23,7 @@ module.exports = (config) => {
     res.status(200).end();
   });
 
-  config.__router.post('/transcode/upload.:ext?', (req, res) => {
+  util.router.post('/transcode/upload.:ext?', (req, res) => {
     const options = JSON.parse(req.headers['upload-options']);
 
     const form = new formidable.IncomingForm();
@@ -64,9 +64,9 @@ module.exports = (config) => {
             .then((info) => {
               Promise.all(uploads[name].path.map(path => fs.unlinkAsync(path))).then(() => {
                 delete uploads[name];
-                config.__sendResponse(res, info);
-              }, config.__handleError.bind(null, res));
-            }, config.__handleError.bind(null, res));
+                util.sendResponse(res, info);
+              }, util.handleError.bind(null, res));
+            }, util.handleError.bind(null, res));
         }
       });
     });

@@ -1,7 +1,7 @@
 const Email = require('ace-api/lib/email');
 const Entity = require('ace-api/lib/entity');
 
-module.exports = (config) => {
+module.exports = (util, config) => {
   const email = new Email(config);
 
   /**
@@ -34,7 +34,7 @@ module.exports = (config) => {
    *      200:
    *        description: Template
    */
-  config.__router.all('/email/template.:ext?', (req, res) => {
+  util.router.all('/email/template.:ext?', (req, res) => {
     const input = Object.keys(req.body).length ? req.body : req.query || {};
 
     const templateSlug = input.templateSlug;
@@ -47,14 +47,14 @@ module.exports = (config) => {
 
     function renderTemplate(data = {}) {
       if (options.data) {
-        config.__sendResponse(res, data);
+        util.sendResponse(res, data);
         return;
       }
 
       email.getTemplate(templateSlug, data, options)
         .then((template) => {
-          config.__sendResponse(res, template.html);
-        }, config.__handleError.bind(null, res));
+          util.sendResponse(res, template.html);
+        }, util.handleError.bind(null, res));
     }
 
     if (input.payload) {
@@ -63,7 +63,7 @@ module.exports = (config) => {
     }
 
     if (input.entityId) {
-      const entity = new Entity(config.__db(req));
+      const entity = new Entity(util.extendConfig(config, req));
 
       entity.entitiesById([input.entityId], true, false, true)
         .then((entities) => {
@@ -78,11 +78,11 @@ module.exports = (config) => {
     renderTemplate();
   });
 
-  config.__router.post('/email/subscribe.:ext?', (req, res) => {
+  util.router.post('/email/subscribe.:ext?', (req, res) => {
     email.subscribe({
       email: req.body.email || req.query.email,
       name: req.body.name || req.query.name || '',
     })
-      .then(config.__sendResponse.bind(null, res), config.__handleError.bind(null, res));
+      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
 };

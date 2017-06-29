@@ -27,7 +27,6 @@
     "bluebird": "^3.5.0",
     "circular-json": "^0.3.1",
     "clarify": "^2.0.0",
-    "cloudant": "^1.8.0",
     "connect-multiparty": "^2.0.0",
     "express": "^4.15.3",
     "express-useragent": "^1.0.7",

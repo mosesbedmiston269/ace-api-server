@@ -1,10 +1,10 @@
 const Embedly = require('ace-api/lib/embedly');
 
-module.exports = (config) => {
+module.exports = (util, config) => {
   const embedly = new Embedly(config);
 
-  config.__router.get('/embedly/oembed.:ext?', config.__ensureAuthenticated, (req, res) => {
+  util.router.get('/embedly/oembed.:ext?', util.authMiddleware, (req, res) => {
     embedly.oembed(req.query.url || req.query.urls)
-      .then(config.__sendResponse.bind(null, res), config.__handleError.bind(null, res));
+      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
 };

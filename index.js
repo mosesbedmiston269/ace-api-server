@@ -1,8 +1,6 @@
 const env = require('node-env-file');
 const _ = require('lodash');
 const express = require('express');
-const Promise = require('bluebird');
-const Cloudant = require('cloudant');
 const Logger = require('le_node');
 const lru = require('lru-cache');
 const jwt = require('jsonwebtoken');
@@ -16,13 +14,11 @@ if (!process.env.ENVIRONMENT) {
 
 const defaultConfig = require('ace-api/config.default');
 
-function ensureAuthenticated (req, res, next) {
+function defaultAuthMiddleware (req, res, next) {
   if (!req.session) {
     res.status(500).send('Session not initialised, please refresh');
     return;
   }
-
-  req.session.referer = req.originalUrl;
 
   if (!req.session.userAuthorised) {
     res.status(401).send('Not authorised');
@@ -32,40 +28,12 @@ function ensureAuthenticated (req, res, next) {
   next();
 }
 
-defaultConfig.__ensureAuthenticated = ensureAuthenticated;
-
-function AceApiServer (app, config) {
+function AceApiServer (appOrRouter, config = {}, authMiddleware = defaultAuthMiddleware) {
   config = _.merge({}, defaultConfig, config);
 
-  // Database
+  // Session middleware
 
-  function connect (dbName) {
-    const opts = {
-      url: config.db.url,
-      requestDefaults: {
-        headers: {},
-      },
-    };
-
-    if (config.db.host) {
-      opts.requestDefaults.headers.host = config.db.host;
-    }
-
-    const cloudant = new Cloudant(opts);
-
-    const db = Promise.promisifyAll(cloudant.use(dbName));
-
-    return db;
-  }
-
-  config.__db = (req = null) => {
-    const dbName = config.db.name ? config.db.name : req && (req.session.dbName || req.session.slug) ? req.session.dbName || req.session.slug : config.db.name;
-    return connect.bind(null, dbName);
-  };
-
-  // Authorisation
-
-  function preAuth (req, res, next) {
+  function sessionMiddleware (req, res, next) {
     if (config.environment !== 'production') {
       if (!req.session.slug) {
         req.session.slug = config.dev.slug;
@@ -80,24 +48,31 @@ function AceApiServer (app, config) {
       req.session.userAuthorised = true;
     }
 
-    res.set('x-environment', config.environment);
-    res.set('x-slug', req.session.slug ? req.session.slug : config.db.name);
+    res.set('X-Environment', config.environment);
+    res.set('X-Slug', req.session.slug ? req.session.slug : config.db.name);
 
-    // res.set('x-role', req.session.role)
-    // res.set('x-super-user', req.session.superUser)
-    // res.set('x-user-authorised', req.session.userAuthorised ? true : false)
+    // res.set('X-Role', req.session.role)
+    // res.set('X-Super-User', req.session.superUser)
+    // res.set('X-User-Authorised', req.session.userAuthorised ? true : false)
 
     next();
   }
 
-  // Caching
+  // Extend config per request/session
+
+  function extendConfig (config, req) {
+    config.db.name = req.session.dbName || req.session.slug || config.db.name;
+    return config;
+  }
+
+  // Cache
 
   let cache;
 
   if (config.cache.enabled) {
     cache = lru({
       max: config.cache.maxSize,
-      length: (item, key) => {
+      length: (item) => {
         // const length = Buffer.byteLength(item, 'utf8')
         const length = sizeof(item);
         return length;
@@ -106,9 +81,9 @@ function AceApiServer (app, config) {
     });
   }
 
-  // Response helpers
+  // Cache middleware
 
-  function useCachedResponse (req, res, next) {
+  function cacheMiddleware (req, res, next) {
     req.session.guestAuthorised = req.session.guestAuthorised ? req.session.guestAuthorised : config.forceAuth;
 
     if (req.headers.token || req.session.token) {
@@ -125,8 +100,8 @@ function AceApiServer (app, config) {
       }
     }
 
-    res.set('x-guest-authorised', req.session.guestAuthorised);
-    res.set('x-from-cache', false);
+    res.set('X-Guest-Authorised', req.session.guestAuthorised);
+    res.set('X-From-Cache', false);
 
     if (config.cache.enabled) {
       const key = req.url.replace(`/${config.apiPrefix}`, '');
@@ -135,7 +110,7 @@ function AceApiServer (app, config) {
       if (fromCache) {
         console.log('Cache usage:', Math.round((cache.length / config.cache.maxSize) * 100), '%');
 
-        res.set('x-from-cache', true);
+        res.set('X-From-Cache', true);
         res.status(200).send(cache.get(key));
 
         return;
@@ -144,6 +119,8 @@ function AceApiServer (app, config) {
 
     next();
   }
+
+  // Response helpers
 
   function handleError (res, error) {
     if (_.isObject(error)) {
@@ -180,6 +157,25 @@ function AceApiServer (app, config) {
     res.send(body);
   }
 
+  // Router
+
+  const router = express.Router();
+
+  appOrRouter.use(`/${config.apiPrefix}`, sessionMiddleware, router);
+
+  // Utilities
+
+  const util = {
+    router,
+    cache,
+    extendConfig,
+    authMiddleware,
+    cacheMiddleware,
+    handleError,
+    sendResponse,
+    cacheAndSendResponse,
+  };
+
   // Debugging
 
   if (config.environment !== 'production') {
@@ -188,7 +184,7 @@ function AceApiServer (app, config) {
   }
 
   if (config.logentriesToken) {
-    config.__log = new Logger({
+    util.log = new Logger({
       token: config.logentriesToken,
     });
   }
@@ -215,7 +211,7 @@ function AceApiServer (app, config) {
   }
 
   if (config.environment !== 'production') {
-    app.use((req, res, next) => {
+    appOrRouter.use((req, res, next) => {
       res.on('finish', afterResponse.bind(null, req, res));
       res.on('close', afterResponse.bind(null, req, res));
 
@@ -229,44 +225,28 @@ function AceApiServer (app, config) {
 
   // Bootstrap API
 
-  const router = express.Router();
-
-  if (config.__router) {
-    config.__router.use(`/${config.apiPrefix}`, preAuth, router);
-  } else {
-    app.use(`/${config.apiPrefix}`, preAuth, router);
-  }
-
-  config.__router = router;
-  config.__cache = cache;
-  config.__ensureAuthenticated = config.__ensureAuthenticated;
-  config.__handleError = handleError;
-  config.__useCachedResponse = useCachedResponse;
-  config.__sendResponse = sendResponse;
-  config.__cacheAndSendResponse = cacheAndSendResponse;
-
-  require('./routes/admin')(config);
-  require('./routes/cache')(config);
-  require('./routes/analytics')(config);
-  require('./routes/auth')(config);
-  require('./routes/debug')(config);
-  require('./routes/ecommerce')(config);
-  require('./routes/email')(config);
-  require('./routes/embedly')(config);
-  require('./routes/entity')(config);
-  require('./routes/file')(config);
-  require('./routes/metadata')(config);
-  require('./routes/pdf')(config);
-  require('./routes/settings')(config);
-  require('./routes/shippo')(config);
-  require('./routes/social')(config);
-  require('./routes/stripe')(config);
-  require('./routes/taxonomy')(config);
-  require('./routes/token')(config);
-  require('./routes/tools')(config);
-  require('./routes/transcode')(config);
-  require('./routes/upload')(config);
-  require('./routes/zencode')(config);
+  require('./routes/admin')(util, config);
+  require('./routes/cache')(util, config);
+  require('./routes/analytics')(util, config);
+  require('./routes/auth')(util, config);
+  require('./routes/debug')(util, config);
+  require('./routes/ecommerce')(util, config);
+  require('./routes/email')(util, config);
+  require('./routes/embedly')(util, config);
+  require('./routes/entity')(util, config);
+  require('./routes/file')(util, config);
+  require('./routes/metadata')(util, config);
+  require('./routes/pdf')(util, config);
+  require('./routes/settings')(util, config);
+  require('./routes/shippo')(util, config);
+  require('./routes/social')(util, config);
+  require('./routes/stripe')(util, config);
+  require('./routes/taxonomy')(util, config);
+  require('./routes/token')(util, config);
+  require('./routes/tools')(util, config);
+  require('./routes/transcode')(util, config);
+  require('./routes/upload')(util, config);
+  require('./routes/zencode')(util, config);
 }
 
 module.exports = AceApiServer;

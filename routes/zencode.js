@@ -1,12 +1,12 @@
 const Zencode = require('ace-api/lib/zencode');
 
-module.exports = (config) => {
+module.exports = (util, config) => {
 
-  config.__router.get('/zencode/job.:ext?', config.__ensureAuthenticated, (req, res) => {
-    const zencode = new Zencode(config.__db(req), config);
+  util.router.get('/zencode/job.:ext?', util.authMiddleware, (req, res) => {
+    const zencode = new Zencode(util.extendConfig(config, req));
 
     zencode.getJob(req.query.id)
-      .then(config.__sendResponse.bind(null, res), config.__handleError.bind(null, res));
+      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
 
 };

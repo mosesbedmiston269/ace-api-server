@@ -1,8 +1,9 @@
 const _ = require('lodash');
 const Auth = require('ace-api/lib/auth');
 const Entity = require('ace-api/lib/entity');
+const Db = require('ace-api/lib/db');
 
-module.exports = (config) => {
+module.exports = (util, config) => {
 
   /**
    * @swagger
@@ -48,9 +49,9 @@ module.exports = (config) => {
    *      200:
    *        description: Indexes
    */
-  config.__router.get('/entities/index.:ext?', (req, res) => {
-    config.__db(req).indexAsync()
-      .then(config.__sendResponse.bind(null, res), config.__handleError.bind(null, res));
+  util.router.get('/entities/index.:ext?', (req, res) => {
+    Db.connect(util.extendConfig(config, req)).indexAsync()
+      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
 
   /**
@@ -134,7 +135,7 @@ module.exports = (config) => {
    *              items:
    *                $ref: '#/definitions/Entity'
    */
-  config.__router.get('/entities/search?.:ext?', config.__useCachedResponse, (req, res) => {
+  util.router.get('/entities/search?.:ext?', util.cacheMiddleware, (req, res) => {
     let children = req.query.children !== undefined ? JSON.parse(req.query.children) : false;
     let parents = req.query.parents !== undefined ? JSON.parse(req.query.parents) : false;
     const trashed = req.query.trashed !== undefined ? JSON.parse(req.query.trashed) : false;
@@ -168,10 +169,10 @@ module.exports = (config) => {
 
     req.query.query = query.join(' AND ');
 
-    const entity = new Entity(config.__db(req));
+    const entity = new Entity(util.extendConfig(config, req));
 
     entity.entitySearch(req.query, children, parents, req.session.userAuthorised || req.session.guestAuthorised)
-      .then(config.__cacheAndSendResponse.bind(null, req, res), config.__handleError.bind(null, res));
+      .then(util.cacheAndSendResponse.bind(null, req, res), util.handleError.bind(null, res));
   });
 
   /**
@@ -215,7 +216,7 @@ module.exports = (config) => {
    *              items:
    *                $ref: '#/definitions/Entity'
    */
-  config.__router.get('/entities/find.:ext?', config.__useCachedResponse, (req, res) => {
+  util.router.get('/entities/find.:ext?', util.cacheMiddleware, (req, res) => {
     const query = JSON.parse(req.query.query);
     let children = req.query.children !== undefined ? JSON.parse(req.query.children) : false;
     let parents = req.query.parents !== undefined ? JSON.parse(req.query.parents) : false;
@@ -233,17 +234,17 @@ module.exports = (config) => {
       query.use_index = ['entityIndex', 'published'];
     }
 
-    const entity = new Entity(config.__db(req));
+    const entity = new Entity(util.extendConfig(config, req));
 
     entity.entityFind(query, children, parents, req.session.userAuthorised || req.session.guestAuthorised)
-      .then(config.__cacheAndSendResponse.bind(null, req, res), config.__handleError.bind(null, res));
+      .then(util.cacheAndSendResponse.bind(null, req, res), util.handleError.bind(null, res));
   });
 
-  config.__router.get('/entities/filterValues.:ext?', config.__ensureAuthenticated, (req, res) => {
-    const entity = new Entity(config.__db(req));
+  util.router.get('/entities/filterValues.:ext?', util.authMiddleware, (req, res) => {
+    const entity = new Entity(util.extendConfig(config, req));
 
     entity.entityFilterValues(req.query)
-      .then(config.__sendResponse.bind(null, res), config.__handleError.bind(null, res));
+      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
 
   /**
@@ -287,7 +288,7 @@ module.exports = (config) => {
    *          items:
    *            $ref: '#/definitions/Entity'
    */
-  config.__router.all('/entities/:view?/:list?.:ext?', config.__useCachedResponse, (req, res) => {
+  util.router.all('/entities/:view?/:list?.:ext?', util.cacheMiddleware, (req, res) => {
     let children = req.query.children !== undefined ? JSON.parse(req.query.children) : false;
     let parents = req.query.parents !== undefined ? JSON.parse(req.query.parents) : false;
 
@@ -311,52 +312,52 @@ module.exports = (config) => {
       req.query.state = 'published';
     }
 
-    const entity = new Entity(config.__db(req));
+    const entity = new Entity(util.extendConfig(config, req));
 
     entity.entityList(req.query, req.params.view, req.params.list, children, parents, req.session.userAuthorised || req.session.guestAuthorised)
-      .then(config.__cacheAndSendResponse.bind(null, req, res), config.__handleError.bind(null, res));
+      .then(util.cacheAndSendResponse.bind(null, req, res), util.handleError.bind(null, res));
   });
 
-  config.__router.get('/entity/revisions.:ext?', config.__ensureAuthenticated, (req, res) => {
-    const entity = new Entity(config.__db(req));
+  util.router.get('/entity/revisions.:ext?', util.authMiddleware, (req, res) => {
+    const entity = new Entity(util.extendConfig(config, req));
 
     entity.entityRevisions(req.query.id)
-      .then(config.__sendResponse.bind(null, res), config.__handleError.bind(null, res));
+      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
 
-  config.__router.post('/entity.:ext?', config.__ensureAuthenticated, Auth.requirePermission.bind(null, 'entityCreate'), (req, res) => {
-    const entity = new Entity(config.__db(req));
+  util.router.post('/entity.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'entityCreate'), (req, res) => {
+    const entity = new Entity(util.extendConfig(config, req));
 
     entity.entityCreate(req.body.entity)
-      .then(config.__sendResponse.bind(null, res), config.__handleError.bind(null, res));
+      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
 
-  config.__router.get('/entity.:ext?', config.__ensureAuthenticated, Auth.requirePermission.bind(null, 'entityRead'), (req, res) => {
-    const entity = new Entity(config.__db(req));
+  util.router.get('/entity.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'entityRead'), (req, res) => {
+    const entity = new Entity(util.extendConfig(config, req));
 
     entity.entityRead(req.query.id)
-      .then(config.__sendResponse.bind(null, res), config.__handleError.bind(null, res));
+      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
 
-  config.__router.put('/entity.:ext?', config.__ensureAuthenticated, Auth.requirePermission.bind(null, 'entityUpdate'), (req, res) => {
-    const entity = new Entity(config.__db(req));
+  util.router.put('/entity.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'entityUpdate'), (req, res) => {
+    const entity = new Entity(util.extendConfig(config, req));
 
     entity.entityUpdate(req.body.entity || req.body.entities, req.body.restore || false)
-      .then(config.__sendResponse.bind(null, res), config.__handleError.bind(null, res));
+      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
 
-  config.__router.delete('/entity.:ext?', config.__ensureAuthenticated, Auth.requirePermission.bind(null, 'entityDelete'), (req, res) => {
-    const entity = new Entity(config.__db(req));
+  util.router.delete('/entity.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'entityDelete'), (req, res) => {
+    const entity = new Entity(util.extendConfig(config, req));
 
     entity.entityDelete(req.body.entity || req.body.entities, req.body.forever || false)
-      .then(config.__sendResponse.bind(null, res), config.__handleError.bind(null, res));
+      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
 
-  config.__router.delete('/entity/trashed.:ext?', config.__ensureAuthenticated, Auth.requirePermission.bind(null, 'entityDelete'), (req, res) => {
-    const entity = new Entity(config.__db(req));
+  util.router.delete('/entity/trashed.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'entityDelete'), (req, res) => {
+    const entity = new Entity(util.extendConfig(config, req));
 
     entity.entityDelete('trashed')
-      .then(config.__sendResponse.bind(null, res), config.__handleError.bind(null, res));
+      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
 
 };

@@ -6,14 +6,14 @@ const File = require('ace-api/lib/file');
 const S3 = require('ace-api/lib/s3');
 const Zencode = require('ace-api/lib/zencode');
 
-module.exports = (config) => {
+module.exports = (util, config) => {
 
-  config.__router.options('/upload.:ext?', config.__ensureAuthenticated, Auth.requirePermission.bind(null, 'fileCreate'), (req, res) => {
+  util.router.options('/upload.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'fileCreate'), (req, res) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.status(200).send();
   });
 
-  config.__router.post('/upload.:ext?', config.__ensureAuthenticated, Auth.requirePermission.bind(null, 'fileCreate'), multiparty, (req, res) => {
+  util.router.post('/upload.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'fileCreate'), multiparty, (req, res) => {
     const flow = new Flow(path.join('/tmp', req.session.slug));
 
     let options = {};
@@ -33,7 +33,7 @@ module.exports = (config) => {
           return;
         }
 
-        const file = new File(config.__db(req), config);
+        const file = new File(util.extendConfig(config, req));
         const fileName = path.join('/tmp', req.session.slug, uploadResult.filename);
 
         if (options.type === 'field' && options.fieldType === 'attachment') {
@@ -64,12 +64,12 @@ module.exports = (config) => {
                     });
                 });
             })
-            .catch(config.__handleError.bind(null, res));
+            .catch(util.handleError.bind(null, res));
         }
 
         if (options.type === 'field' && /^(video|audio)$/.test(options.fieldType)) {
           const s3 = new S3(config);
-          const zencode = new Zencode(config.__db(req), config);
+          const zencode = new Zencode(util.extendConfig(config, req));
 
           let mediaType;
           let outputs;
@@ -118,13 +118,13 @@ module.exports = (config) => {
                     });
                 });
             })
-            .catch(config.__handleError.bind(null, res));
+            .catch(util.handleError.bind(null, res));
         }
 
-      }, config.__handleError.bind(null, res));
+      }, util.handleError.bind(null, res));
   });
 
-  config.__router.get('/upload.:ext?', config.__ensureAuthenticated, Auth.requirePermission.bind(null, 'fileCreate'), (req, res) => {
+  util.router.get('/upload.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'fileCreate'), (req, res) => {
     const flow = new Flow(path.join('/tmp', req.session.slug));
 
     flow.checkChunk(req.query.flowChunkNumber, req.query.flowChunkSize, req.query.flowTotalSize, req.query.flowIdentifier, req.query.flowFilename)
@@ -137,7 +137,7 @@ module.exports = (config) => {
       });
   });
 
-  // config.__router.get('/download/:identifier.:ext?', (req, res) => {
+  // util.router.get('/download/:identifier.:ext?', (req, res) => {
   //   flow.write(req.param.identifier, res)
   // })
 

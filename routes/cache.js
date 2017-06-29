@@ -1,4 +1,4 @@
-module.exports = (config) => {
+module.exports = (util, config) => {
 
   /**
    * @swagger
@@ -14,17 +14,17 @@ module.exports = (config) => {
    *      200:
    *        description: Result
    */
-  config.__router.get('/cache/clear.:ext?', (req, res) => {
+  util.router.get('/cache/clear.:ext?', (req, res) => {
     if (!config.cache) {
-      config.__sendResponse(res, 'Cache disabled');
+      util.sendResponse(res, 'Cache disabled');
       return;
     }
 
-    const itemsCount = config.__cache.keys().length;
+    const itemsCount = util.cache.keys().length;
 
-    config.__cache.reset();
+    util.cache.reset();
 
-    config.__sendResponse(res, `Successfully cleared ${itemsCount} items from the cache`);
+    util.sendResponse(res, `Successfully cleared ${itemsCount} items from the cache`);
   });
 
 };
