@@ -21,7 +21,7 @@
     "sampleUrl": "http://localhost:5000/api/latest"
   },
   "dependencies": {
-    "ace-api": "^0.3.3",
+    "ace-api": "^0.3.5",
     "agentkeepalive": "^3.3.0",
     "axios": "^0.16.2",
     "bluebird": "^3.5.0",
@@ -63,7 +63,7 @@
     "eslint": "^4.1.1",
     "eslint-config-airbnb": "^15.0.1",
     "eslint-config-airbnb-base": "^11.2.0",
-    "eslint-plugin-import": "^2.6.0",
+    "eslint-plugin-import": "^2.6.1",
     "express-session": "^1.15.3",
     "gulp": "^3.9.1",
     "gulp-livereload": "^3.8.1",
