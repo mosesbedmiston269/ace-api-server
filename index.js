@@ -62,8 +62,10 @@ function AceApiServer (appOrRouter, serverConfig = {}, authMiddleware = defaultA
   // Clone and extend config per request/session
 
   function getConfig (config, req) {
-    const configClone = _.clone(config);
+    const configClone = JSON.parse(JSON.stringify(config));
+
     configClone.db.name = req.session.dbName || req.session.slug || config.db.name;
+
     return configClone;
   }
 
