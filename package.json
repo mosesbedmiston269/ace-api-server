@@ -21,7 +21,7 @@
     "sampleUrl": "http://localhost:5000/api/latest"
   },
   "dependencies": {
-    "ace-api": "^0.3.6",
+    "ace-api": "^0.3.7",
     "agentkeepalive": "^3.3.0",
     "axios": "^0.16.2",
     "bluebird": "^3.5.0",
