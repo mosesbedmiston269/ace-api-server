@@ -58,11 +58,12 @@ function AceApiServer (appOrRouter, config = {}, authMiddleware = defaultAuthMid
     next();
   }
 
-  // Extend config per request/session
+  // Clone and extend config per request/session
 
-  function extendConfig (config, req) {
-    config.db.name = req.session.dbName || req.session.slug || config.db.name;
-    return config;
+  function getConfig (config, req) {
+    const configClone = _.clone(config);
+    configClone.db.name = req.session.dbName || req.session.slug || config.db.name;
+    return configClone;
   }
 
   // Cache
@@ -168,7 +169,7 @@ function AceApiServer (appOrRouter, config = {}, authMiddleware = defaultAuthMid
   const util = {
     router,
     cache,
-    extendConfig,
+    getConfig,
     authMiddleware,
     cacheMiddleware,
     handleError,

@@ -63,7 +63,7 @@ module.exports = (util, config) => {
     }
 
     if (input.entityId) {
-      const entity = new Entity(util.extendConfig(config, req));
+      const entity = new Entity(util.getConfig(config, req));
 
       entity.entitiesById([input.entityId], true, false, true)
         .then((entities) => {

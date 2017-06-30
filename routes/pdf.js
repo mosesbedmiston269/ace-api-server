@@ -5,7 +5,7 @@ module.exports = (util, config) => {
   const pdfUrl = `${config.assist.url}/pdf/download`;
 
   util.router.get('/pdf/view/:template?/:id?.:ext?', (req, res) => {
-    const pdf = new Pdf(util.extendConfig(config, req).pdf.templates, pdfUrl);
+    const pdf = new Pdf(util.getConfig(config, req).pdf.templates, pdfUrl);
 
     pdf.getPayload(req.params.template || req.query.template, req.params.id || req.query.id)
       .then((payload) => {
@@ -20,7 +20,7 @@ module.exports = (util, config) => {
   });
 
   util.router.get('/pdf/download/:template?/:id?.:ext?', (req, res) => {
-    const pdf = new Pdf(util.extendConfig(config, req).pdf.templates, pdfUrl);
+    const pdf = new Pdf(util.getConfig(config, req).pdf.templates, pdfUrl);
 
     pdf.getPayload(req.params.template || req.query.template, req.params.id || req.query.id)
       .then((payload) => {
@@ -35,7 +35,7 @@ module.exports = (util, config) => {
   });
 
   util.router.get('/pdf/payload/:template?/:id?.:ext?', (req, res) => {
-    const pdf = new Pdf(util.extendConfig(config, req).pdf.templates, pdfUrl);
+    const pdf = new Pdf(util.getConfig(config, req).pdf.templates, pdfUrl);
 
     pdf.getPayload(req.params.template || req.query.template, req.params.id || req.query.id)
       .then((payload) => {
@@ -45,7 +45,7 @@ module.exports = (util, config) => {
   });
 
   util.router.get('/pdf/:template?/:id?.:ext?', (req, res) => {
-    const pdf = new Pdf(util.extendConfig(config, req).pdf.templates, pdfUrl);
+    const pdf = new Pdf(util.getConfig(config, req).pdf.templates, pdfUrl);
 
     pdf.getPayload(req.params.template || req.query.template, req.params.id || req.query.id)
       .then((payload) => {

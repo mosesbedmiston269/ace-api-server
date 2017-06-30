@@ -22,7 +22,7 @@ module.exports = (util, config) => {
    *              type: string
    */
   util.router.get('/metadata.:ext?', util.cacheMiddleware, (req, res) => {
-    const settings = new Settings(util.extendConfig(config, req));
+    const settings = new Settings(util.getConfig(config, req));
 
     settings.settings()
       .then((settings) => {

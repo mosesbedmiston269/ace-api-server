@@ -33,7 +33,7 @@ module.exports = (util, config) => {
     const params = req.params[1].split('/').filter(param => param !== '');
 
     if (!instagramSettings) {
-      const settings = new Settings(util.extendConfig(config, req));
+      const settings = new Settings(util.getConfig(config, req));
 
       instagramSettings = yield settings.settings().then(settings => settings.instagram);
 

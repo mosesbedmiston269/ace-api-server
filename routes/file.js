@@ -5,28 +5,28 @@ const S3 = require('ace-api/lib/s3');
 module.exports = (util, config) => {
 
   util.router.get('/file/search.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'fileRead'), (req, res) => {
-    const file = new File(util.extendConfig(config, req));
+    const file = new File(util.getConfig(config, req));
 
     file.search(req.query)
       .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
 
   util.router.post('/file.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'fileCreate'), (req, res) => {
-    const file = new File(util.extendConfig(config, req));
+    const file = new File(util.getConfig(config, req));
 
     file.create(req.body.file)
       .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
 
   util.router.delete('/file.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'fileDelete'), (req, res) => {
-    const file = new File(util.extendConfig(config, req));
+    const file = new File(util.getConfig(config, req));
 
     file.delete(req.body.file || req.body.files, req.session.slug)
       .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
 
   util.router.delete('/file/trashed.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'fileDelete'), (req, res) => {
-    const file = new File(util.extendConfig(config, req));
+    const file = new File(util.getConfig(config, req));
 
     file.delete('trashed', req.session.slug)
       .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));

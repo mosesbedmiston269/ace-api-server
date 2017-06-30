@@ -13,7 +13,7 @@ module.exports = (util, config) => {
   });
 
   util.router.post('/auth/:provider.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'settings'), (req, res) => {
-    const auth = new Auth(util.extendConfig(config, req));
+    const auth = new Auth(util.getConfig(config, req));
 
     auth.authenticateWithProvider(req.params.provider, req.body)
       .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));

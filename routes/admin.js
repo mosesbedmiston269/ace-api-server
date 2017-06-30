@@ -21,7 +21,7 @@ module.exports = (util, config) => {
    *        description: User
    */
   util.router.get('/admin/user/current.:ext?', util.authMiddleware, (req, res) => {
-    const admin = new Admin(util.extendConfig(config, req));
+    const admin = new Admin(util.getConfig(config, req));
 
     admin.getUser(req.session.email, req.session.superUser)
       .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
@@ -39,14 +39,14 @@ module.exports = (util, config) => {
   Admin.TYPES.forEach((type) => {
 
     util.router.get(`/admin/${type}/search.:ext?`, util.authMiddleware, (req, res) => {
-      const admin = new Admin(util.extendConfig(config, req));
+      const admin = new Admin(util.getConfig(config, req));
 
       admin.search(type, req.query)
         .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
     });
 
     util.router.get(`/admin/${type}/list.:ext?`, util.authMiddleware, (req, res) => {
-      const admin = new Admin(util.extendConfig(config, req));
+      const admin = new Admin(util.getConfig(config, req));
 
       admin.list(type, req.query)
         .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
@@ -59,28 +59,28 @@ module.exports = (util, config) => {
         item.slug = req.session.slug;
       }
 
-      const admin = new Admin(util.extendConfig(config, req));
+      const admin = new Admin(util.getConfig(config, req));
 
       admin.create(type, item)
         .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
     });
 
     util.router.get(`/admin/${type}.:ext?`, util.authMiddleware, Auth.requirePermission.bind(null, 'admin'), (req, res) => {
-      const admin = new Admin(util.extendConfig(config, req));
+      const admin = new Admin(util.getConfig(config, req));
 
       admin.read(type, req.query)
         .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
     });
 
     util.router.put(`/admin/${type}.:ext?`, util.authMiddleware, Auth.requirePermission.bind(null, 'admin'), (req, res) => {
-      const admin = new Admin(util.extendConfig(config, req));
+      const admin = new Admin(util.getConfig(config, req));
 
       admin.update(type, req.body.items)
         .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
     });
 
     util.router.delete(`/admin/${type}.:ext?`, util.authMiddleware, Auth.requirePermission.bind(null, 'admin'), (req, res) => {
-      const admin = new Admin(util.extendConfig(config, req));
+      const admin = new Admin(util.getConfig(config, req));
 
       admin.delete(type, req.body.items)
         .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
