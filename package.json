@@ -28,6 +28,7 @@
     "circular-json": "^0.3.1",
     "clarify": "^2.0.0",
     "connect-multiparty": "^2.0.0",
+    "deep-freeze": "0.0.1",
     "express": "^4.15.3",
     "express-useragent": "^1.0.7",
     "formidable": "^1.1.1",

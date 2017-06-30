@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken');
 const CircularJSON = require('circular-json');
 const memwatch = require('memwatch-next');
 const sizeof = require('object-sizeof');
+const deepFreeze = require('deep-freeze');
 
 if (!process.env.ENVIRONMENT) {
   env('.env');
@@ -28,8 +29,8 @@ function defaultAuthMiddleware (req, res, next) {
   next();
 }
 
-function AceApiServer (appOrRouter, config = {}, authMiddleware = defaultAuthMiddleware) {
-  config = _.merge({}, defaultConfig, config);
+function AceApiServer (appOrRouter, serverConfig = {}, authMiddleware = defaultAuthMiddleware) {
+  const config = deepFreeze(_.merge({}, defaultConfig, serverConfig));
 
   // Session middleware
 
