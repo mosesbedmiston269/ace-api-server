@@ -20,7 +20,7 @@ module.exports = (util, config) => {
   util.router.post('/taxonomy/term.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'taxonomyUpdate'), (req, res) => {
     const taxonomy = new Taxonomy(util.getConfig(config, req));
 
-    taxonomy.createTerm(req.body.slug, req.body.term, req.session.email)
+    taxonomy.createTerm(req.body.slug, req.body.term, req.session.userId)
       .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
 

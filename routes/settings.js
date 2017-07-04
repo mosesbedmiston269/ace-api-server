@@ -13,7 +13,7 @@ module.exports = (util, config) => {
   util.router.put('/settings.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'settings'), (req, res) => {
     const settings = new Settings(util.getConfig(config, req));
 
-    settings.settings(req.body.settings, req.session.email)
+    settings.settings(req.body.settings, req.session.userId)
       .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
 

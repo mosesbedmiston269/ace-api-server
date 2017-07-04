@@ -159,7 +159,7 @@ module.exports = (util, config) => {
 
     query.push(trashed ? 'trashed:true' : '!trashed:true');
 
-    if (!req.session.userAuthorised && !req.session.guestAuthorised) {
+    if (req.session.role === 'guest') {
       query.push('published:true');
     }
 
@@ -171,7 +171,7 @@ module.exports = (util, config) => {
 
     const entity = new Entity(util.getConfig(config, req));
 
-    entity.entitySearch(req.query, children, parents, req.session.userAuthorised || req.session.guestAuthorised)
+    entity.entitySearch(req.query, children, parents, req.session.role)
       .then(util.cacheAndSendResponse.bind(null, req, res), util.handleError.bind(null, res));
   });
 
@@ -228,15 +228,15 @@ module.exports = (util, config) => {
       parents = 1;
     }
 
-    if (req.session.userAuthorised || req.session.guestAuthorised) {
-      query.use_index = ['entityIndex', 'active'];
-    } else {
+    if (req.session.role === 'guest') {
       query.use_index = ['entityIndex', 'published'];
+    } else {
+      query.use_index = ['entityIndex', 'active'];
     }
 
     const entity = new Entity(util.getConfig(config, req));
 
-    entity.entityFind(query, children, parents, req.session.userAuthorised || req.session.guestAuthorised)
+    entity.entityFind(query, children, parents, req.session.role)
       .then(util.cacheAndSendResponse.bind(null, req, res), util.handleError.bind(null, res));
   });
 
@@ -306,15 +306,15 @@ module.exports = (util, config) => {
     }
     req.query.include_docs = true;
 
-    if (req.session.userAuthorised || req.session.guestAuthorised) {
-      req.query.state = 'active';
-    } else {
+    if (req.session.role === 'guest') {
       req.query.state = 'published';
+    } else {
+      req.query.state = 'active';
     }
 
     const entity = new Entity(util.getConfig(config, req));
 
-    entity.entityList(req.query, req.params.view, req.params.list, children, parents, req.session.userAuthorised || req.session.guestAuthorised)
+    entity.entityList(req.query, req.params.view, req.params.list, children, parents, req.session.role)
       .then(util.cacheAndSendResponse.bind(null, req, res), util.handleError.bind(null, res));
   });
 

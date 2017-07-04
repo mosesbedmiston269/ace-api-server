@@ -15,6 +15,24 @@ module.exports = {
     },
     host: `localhost:${API_PORT}`,
     basePath: '/api/latest',
+    schemes: ['http', 'https'],
+    securityDefinitions: {
+      jwt: {
+        type: 'apiKey',
+        in: 'header',
+        name: 'X-Api-Token',
+      },
+    },
+    responses: {
+      UnauthorizedError: {
+        description: 'API key is missing or invalid',
+        headers: {
+          'WWW_Authenticate': {
+            type: 'string',
+          },
+        },
+      },
+    },
   },
   apis: ['./routes/*.js'], // Path to the API docs
 };

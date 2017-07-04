@@ -3,11 +3,11 @@ const _ = require('lodash');
 const express = require('express');
 const Logger = require('le_node');
 const lru = require('lru-cache');
-const jwt = require('jsonwebtoken');
 const CircularJSON = require('circular-json');
 const memwatch = require('memwatch-next');
 const sizeof = require('object-sizeof');
 const deepFreeze = require('deep-freeze');
+const Jwt = require('ace-api/lib/jwt');
 
 if (!process.env.ENVIRONMENT) {
   env('.env');
@@ -15,56 +15,45 @@ if (!process.env.ENVIRONMENT) {
 
 const defaultConfig = require('ace-api/config.default');
 
-function defaultAuthMiddleware (req, res, next) {
-  if (!req.session) {
-    res.status(500).send('Session not initialised, please refresh');
-    return;
-  }
-
-  if (!req.session.userAuthorised) {
-    res.status(401).send('Not authorised');
-    return;
-  }
-
-  next();
-}
-
-function AceApiServer (appOrRouter, serverConfig = {}, authMiddleware = defaultAuthMiddleware) {
+function AceApiServer (appOrRouter, serverConfig = {}, authMiddleware = null) {
   const config = deepFreeze(_.merge({}, defaultConfig, serverConfig));
 
-  // Session middleware
+  // Allowed development routes
 
-  function sessionMiddleware (req, res, next) {
-    if (config.environment !== 'production') {
-      if (!req.session.slug) {
-        req.session.slug = config.dev.slug;
-      }
-      if (!req.session.dbName) {
-        req.session.dbName = config.dev.dbName;
-      }
-      req.session.email = config.dev.email;
-      req.session.role = config.dev.role;
-      req.session.superUser = config.dev.superUser;
+  function isAllowedDevRoute (req) {
+    const allowedRoutes = ['/token'];
+    return config.environment === 'development' && allowedRoutes.indexOf(req.path) > -1;
+  }
 
-      req.session.userAuthorised = true;
+  // Default auth middleware
+
+  function defaultAuthMiddleware (req, res, next) {
+    if (isAllowedDevRoute(req)) {
+      next();
+      return;
     }
 
-    res.set('X-Environment', config.environment);
-    res.set('X-Slug', req.session.slug ? req.session.slug : config.db.name);
-
-    // res.set('X-Role', req.session.role)
-    // res.set('X-Super-User', req.session.superUser)
-    // res.set('X-User-Authorised', req.session.userAuthorised ? true : false)
+    if (!req.session.userId) {
+      res.status(401);
+      res.send({
+        code: 401,
+        message: 'Not authorised',
+      });
+      return;
+    }
 
     next();
   }
+
+  authMiddleware = authMiddleware || defaultAuthMiddleware;
 
   // Clone and extend config per request/session
 
   function getConfig (config, req) {
     const configClone = JSON.parse(JSON.stringify(config));
 
-    configClone.db.name = req.session.dbName || req.session.slug || config.db.name;
+    // configClone.db.name = req.session.dbName || req.session.slug || config.db.name;
+    configClone.db.name = req.session.slug;
 
     return configClone;
   }
@@ -88,38 +77,22 @@ function AceApiServer (appOrRouter, serverConfig = {}, authMiddleware = defaultA
   // Cache middleware
 
   function cacheMiddleware (req, res, next) {
-    req.session.guestAuthorised = req.session.guestAuthorised ? req.session.guestAuthorised : config.forceAuth;
-
-    if (req.headers.token || req.session.token) {
-      try {
-        const payload = jwt.verify(req.headers.token || req.session.token, config.auth.tokenSecret);
-
-        if (payload.slug === config.slug) {
-          req.session.guestAuthorised = true;
-        } else {
-          console.error('Token error: slug mismatch');
-        }
-      } catch (error) {
-        console.error('Token error: expired');
-      }
-    }
-
-    res.set('X-Guest-Authorised', req.session.guestAuthorised);
-    res.set('X-From-Cache', false);
-
     if (config.cache.enabled) {
       const key = req.url.replace(`/${config.apiPrefix}`, '');
-      const fromCache = config.cache.enabled && cache.has(key) && req.session.guestAuthorised !== true;
+      const useCachedResponse = config.cache.enabled && cache.has(key) && req.session.role === 'guest'; // TODO: Replace 'guest' with constant
 
-      if (fromCache) {
+      if (useCachedResponse) {
         console.log('Cache usage:', Math.round((cache.length / config.cache.maxSize) * 100), '%');
 
-        res.set('X-From-Cache', true);
-        res.status(200).send(cache.get(key));
+        res.set('X-Cached-Response', true);
+        res.status(200);
+        res.send(cache.get(key));
 
         return;
       }
     }
+
+    res.set('X-Cached-Response', false);
 
     next();
   }
@@ -132,7 +105,6 @@ function AceApiServer (appOrRouter, serverConfig = {}, authMiddleware = defaultA
     }
     const statusCode = error.statusCode || error.code || 500;
     const errorMessage = error.stack || error.error || error.message || error.body || error.data || error;
-    res.setHeader('Access-Control-Allow-Origin', '*');
     res.status(typeof statusCode === 'string' ? 500 : statusCode);
     res.send({
       code: statusCode,
@@ -142,30 +114,127 @@ function AceApiServer (appOrRouter, serverConfig = {}, authMiddleware = defaultA
   }
 
   function sendResponse (res, response) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
     res.status(200);
     res.send(response);
   }
 
   function cacheAndSendResponse (req, res, body) {
     if (config.cache.enabled) {
-      if (req.session.guestAuthorised && cache.has(req.url)) {
+      if (req.session.role === 'guest' && cache.has(req.url)) { // TODO: Replace 'guest' with constant
         cache.del(req.url);
       } else {
         cache.set(req.url, body);
       }
     }
 
-    res.setHeader('Access-Control-Allow-Origin', '*');
     res.status(200);
     res.send(body);
+  }
+
+  // Header middleware
+
+  function headerMiddleware (req, res, next) {
+    const headers = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET,PUT,POST,DELETE,OPTIONS',
+    };
+
+    if (req.headers['access-control-request-headers']) {
+      headers['Access-Control-Allow-Headers'] = req.headers['access-control-request-headers'];
+    }
+
+    res.set(headers);
+
+    if (req.method === 'OPTIONS') {
+      res.sendStatus(200);
+      return;
+    }
+
+    next();
+  }
+
+  // Session middleware
+
+  const jwt = new Jwt(config);
+
+  function sessionMiddleware (req, res, next) {
+    if (isAllowedDevRoute(req)) {
+      next();
+      return;
+    }
+
+    const token = req.headers['x-api-token'] || req.query.apiToken || req.session.apiToken;
+
+    if (!token) {
+      res.status(401);
+      res.send({
+        code: 401,
+        message: 'Not authorised, missing token',
+      });
+      return;
+    }
+
+    // TODO: check token hasn't been revoked
+
+    try {
+      const payload = jwt.verifyToken(token);
+
+      req.session.userId = payload.userId;
+      req.session.slug = payload.slug;
+      req.session.role = payload.role;
+
+    } catch (error) {
+      res.status(401);
+      res.send({
+        code: 401,
+        message: 'Not authorised, token verification failed',
+      });
+      return;
+    }
+
+    if (!req.session.slug) {
+      res.status(401);
+      res.send({
+        code: 401,
+        message: 'Not authorised, missing slug',
+      });
+      return;
+    }
+
+    if (!req.session.role) {
+      req.session.role = 'guest';
+    }
+
+    if (req.session.userId) {
+      res.set('X-User-Id', req.session.userId);
+    }
+
+    res.set('X-Environment', config.environment);
+    res.set('X-Slug', req.session.slug);
+    res.set('X-Role', req.session.role);
+
+    next();
   }
 
   // Router
 
   const router = express.Router();
 
-  appOrRouter.use(`/${config.apiPrefix}`, sessionMiddleware, router);
+  appOrRouter.use(`/${config.apiPrefix}`, headerMiddleware, sessionMiddleware, router);
+
+  appOrRouter.get(`/${config.apiPrefix}`, (req, res) => {
+    res.send(`
+    <pre>
+    ______
+    |A     |
+    |  /\\  |
+    | /  \\ |
+    |(    )|
+    |  )(  |
+    |______|
+    </pre>
+    `);
+  });
 
   // Utilities
 

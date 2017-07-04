@@ -15,15 +15,19 @@ module.exports = (util, config) => {
    *    description: Get the current user's details.
    *    produces:
    *      - application/json
+   *    security:
+   *      - jwt: []
    *    parameters:
    *    responses:
    *      200:
    *        description: User
+   *      401:
+   *        $ref: "#/responses/UnauthorizedError"
    */
   util.router.get('/admin/user/current.:ext?', util.authMiddleware, (req, res) => {
     const admin = new Admin(util.getConfig(config, req));
 
-    admin.getUser(req.session.email, req.session.superUser)
+    admin.getUser(req.session.userId)
       .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
 

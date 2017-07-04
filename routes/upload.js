@@ -46,7 +46,7 @@ module.exports = (util, config) => {
                 original: prepResult.original,
                 mediaType: 'attachment',
                 uploaded: new Date(),
-                uploadedBy: req.session.email,
+                uploadedBy: req.session.userId,
                 metadata: {
                   s3: prepResult.metadata,
                 },
@@ -90,7 +90,7 @@ module.exports = (util, config) => {
                 original: prepResult.original,
                 mediaType,
                 uploaded: new Date(),
-                uploadedBy: req.session.email,
+                uploadedBy: req.session.userId,
                 metadata: {
                   s3: prepResult.metadata,
                   zencoder: {},
@@ -110,11 +110,16 @@ module.exports = (util, config) => {
                     .then((jobResult) => {
                       _file.metadata.zencoder.job = jobResult.zencoderJob;
 
-                      res.status(200).send(_file);
-
                       zencode.checkJob(jobResult.zencoderJob.id, file.id);
 
-                      flow.deleteFile(uploadResult.filename);
+                      flow.deleteFile(uploadResult.filename)
+                        .then(() => {
+                          res.status(200).send(_file);
+                        }, (error) => {
+                          console.error(error);
+
+                          res.status(200).send(_file);
+                        });
                     });
                 });
             })
