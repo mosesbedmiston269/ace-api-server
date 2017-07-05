@@ -119,12 +119,8 @@ function AceApiServer (appOrRouter, serverConfig = {}, authMiddleware = null) {
   }
 
   function cacheAndSendResponse (req, res, body) {
-    if (config.cache.enabled) {
-      if (req.session.role === 'guest' && cache.has(req.url)) { // TODO: Replace 'guest' with constant
-        cache.del(req.url);
-      } else {
-        cache.set(req.url, body);
-      }
+    if (config.cache.enabled && req.session.role === 'guest') { // TODO: Replace 'guest' with constant
+      cache.set(req.url, body);
     }
 
     res.status(200);
