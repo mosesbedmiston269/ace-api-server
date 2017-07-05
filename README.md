@@ -30,11 +30,10 @@ http://petstore.swagger.io/?url=https://rawgit.com/StudioThomas/ace-api-server/m
     SESSION_SECRET=
     AUTH_TOKEN_SECRET=
 
-    DEV_EMAIL=
+    DEV_USER_ID=
     DEV_SLUG=
-    DEV_DB_NAME=
-    DEV_ROLE=admin
-    DEV_SUPER=true
+    DEV_ROLE=
+    DEV_EMAIL=
 
 ### Useful
 
