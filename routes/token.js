@@ -47,10 +47,10 @@ module.exports = (util, config) => {
     };
 
     if (req.session.role === 'super' || config.environment === 'development') {
-      payload.role = req.query.role || config.dev.role;
-      payload.slug = req.query.slug || config.dev.slug;
+      payload.role = req.query.role || req.session.role || config.dev.role;
+      payload.slug = req.query.slug || req.session.slug || config.dev.slug;
       if (payload.role !== 'guest') {
-        payload.userId = req.query.userId || config.dev.userId;
+        payload.userId = req.query.userId || req.session.userId || config.dev.userId;
       }
     }
 
