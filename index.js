@@ -49,8 +49,26 @@ function AceApiServer (appOrRouter, serverConfig = {}, authMiddleware = null) {
 
   // Clone and extend config per request/session
 
+  function omitUndefined(obj) {
+    _.forIn(obj, function(value, key, obj) {
+      if (_.isPlainObject(value)) {
+        value = omitUndefined(value);
+
+        if (_.keys(value).length === 0) {
+          delete obj[key];
+        }
+      }
+
+      if (_.isUndefined(value)) {
+        delete obj[key];
+      }
+    });
+
+    return obj;
+  }
+
   function getConfig (config, req) {
-    const configClone = JSON.parse(JSON.stringify(config));
+    const configClone = _.mergeWith({}, JSON.parse(JSON.stringify(config)), omitUndefined(_.cloneDeep(config)));
 
     // configClone.db.name = req.session.dbName || req.session.slug || config.db.name;
     configClone.db.name = req.session.slug;
