@@ -9,8 +9,8 @@ module.exports = (callback) => {
 
   app.use('/docs', serveStatic(path.resolve(__dirname)));
 
+  // app.use(serveStatic(swaggerUi.absolutePath()));
   // app.use(serveStatic(swaggerUi.getAbsoluteFSPath()));
-  // app.use(serveStatic(path.resolve(__dirname, '../node_modules/swagger-ui-dist')));
   app.use(serveStatic(path.resolve(__dirname, '../node_modules/swagger-ui/dist')));
 
   app.listen(config.port, () => {
