@@ -5,7 +5,7 @@ module.exports = (util, config) => {
   util.router.get('/pdf/view/:template?/:id?.:ext?', (req, res) => {
     const pdf = new Pdf(util.getConfig(config, req));
 
-    pdf.getPayload(req.params.template || req.query.template, req.params.id || req.query.id)
+    pdf.getPayload(req.params.template || req.query.template, req.params.id || req.query.id, req.session.role)
       .then((payload) => {
         pdf.getPdf(payload)
           .then((pdf) => {
@@ -20,7 +20,7 @@ module.exports = (util, config) => {
   util.router.get('/pdf/download/:template?/:id?.:ext?', (req, res) => {
     const pdf = new Pdf(util.getConfig(config, req));
 
-    pdf.getPayload(req.params.template || req.query.template, req.params.id || req.query.id)
+    pdf.getPayload(req.params.template || req.query.template, req.params.id || req.query.id, req.session.role)
       .then((payload) => {
         pdf.getPdf(payload)
           .then((pdf) => {
@@ -35,7 +35,7 @@ module.exports = (util, config) => {
   util.router.get('/pdf/payload/:template?/:id?.:ext?', (req, res) => {
     const pdf = new Pdf(util.getConfig(config, req));
 
-    pdf.getPayload(req.params.template || req.query.template, req.params.id || req.query.id)
+    pdf.getPayload(req.params.template || req.query.template, req.params.id || req.query.id, req.session.role)
       .then((payload) => {
         res.status(200);
         res.json(payload);
@@ -45,14 +45,14 @@ module.exports = (util, config) => {
   util.router.get('/pdf/:template?/:id?.:ext?', (req, res) => {
     const pdf = new Pdf(util.getConfig(config, req));
 
-    pdf.getPayload(req.params.template || req.query.template, req.params.id || req.query.id)
+    pdf.getPayload(req.params.template || req.query.template, req.params.id || req.query.id, req.session.role)
       .then((payload) => {
         payload = Helpers.stringify(payload);
 
         res.status(200);
         res.send(`
           <body onload='form.submit()'>
-            <form id='form' method='POST' action='${pdfUrl}' target='_self'>
+            <form id='form' method='POST' action='${config.assist.url}/${config.slug}/pdf/download' target='_self'>
               <input type='hidden' name='payload' value='${payload}' />
             </form>
           </body>
