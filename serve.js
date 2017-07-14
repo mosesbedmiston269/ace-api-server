@@ -1,4 +1,6 @@
 const PORT = process.env.PORT || 5000;
+const SESSION_SECRET = process.env.SESSION_SECRET;
+const API_PREFIX = process.env.API_PREFIX;
 
 const express = require('express');
 const http = require('http');
@@ -11,7 +13,7 @@ const session = require('express-session');
 
 const config = require('ace-api/config.default');
 
-config.apiPrefix = process.env.API_PREFIX || 'api/latest';
+config.apiPrefix = API_PREFIX || 'api/latest';
 
 const AceApiServer = require('./index');
 
@@ -28,7 +30,7 @@ app.use(bodyParser.urlencoded({
 }));
 app.use(methodOverride());
 app.use(session({
-  secret: process.env.SESSION_SECRET,
+  secret: SESSION_SECRET,
   resave: true,
   saveUninitialized: true,
 }));

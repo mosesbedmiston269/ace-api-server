@@ -24,8 +24,9 @@ http://petstore.swagger.io/?url=https://rawgit.com/StudioThomas/ace-api-server/m
     DEBUG=false # Change to nano etc
     CACHE_ENABLED=false
 
-    DB_NAME=
     DB_URL=
+
+    API_PREFIX=
 
     SESSION_SECRET=
     AUTH_TOKEN_SECRET=
