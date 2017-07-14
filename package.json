@@ -1,6 +1,6 @@
 {
   "name": "ace-api-server",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "ACE API Server",
   "author": {
     "name": "Studio Thomas",
@@ -21,7 +21,7 @@
     "sampleUrl": "http://localhost:5000/api/latest"
   },
   "dependencies": {
-    "ace-api": "^0.4.4",
+    "ace-api": "^0.4.5",
     "agentkeepalive": "^3.3.0",
     "axios": "^0.16.2",
     "bluebird": "^3.5.0",
