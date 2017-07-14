@@ -1,9 +1,3 @@
-const env = require('node-env-file');
-
-if (!process.env.ENVIRONMENT) {
-  env('.env');
-}
-
 const PORT = process.env.PORT || 5000;
 
 const express = require('express');
@@ -17,7 +11,7 @@ const session = require('express-session');
 
 const config = require('ace-api/config.default');
 
-config.apiPrefix = 'api/latest';
+config.apiPrefix = process.env.API_PREFIX || 'api/latest';
 
 const AceApiServer = require('./index');
 
