@@ -237,17 +237,7 @@ function AceApiServer (appOrRouter, serverConfig = {}, authMiddleware = null) {
   appOrRouter.use(`/${config.apiPrefix}`, headerMiddleware, sessionMiddleware, router);
 
   appOrRouter.get(`/${config.apiPrefix}`, (req, res) => {
-    res.send(`
-    <pre>
-    ______
-    |A     |
-    |  /\\  |
-    | /  \\ |
-    |(    )|
-    |  )(  |
-    |______|
-    </pre>
-    `);
+    res.send('<pre> ______\n|A     |\n|  /\\  |\n| /  \\ |\n|(    )|\n|  )(  |\n|______|</pre>');
   });
 
   // Utilities
