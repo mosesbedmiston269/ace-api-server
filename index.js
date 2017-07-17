@@ -235,7 +235,10 @@ function AceApiServer (appOrRouter, serverConfig = {}, authMiddleware = null) {
   const router = express.Router();
 
   function forceHttps (req, res, next) {
-    if (req.headers['x-forwarded-proto'] && req.headers['x-forwarded-proto'] !== 'https') {
+    if (
+      (req.headers['x-forwarded-proto'] && req.headers['x-forwarded-proto'] !== 'https') &&
+      (req.headers['cf-visitor'] && JSON.parse(req.headers['cf-visitor']).scheme !== 'https')
+    ) {
       res.redirect(301, `https://${req.headers.host}${req.path}`);
       return;
     }
