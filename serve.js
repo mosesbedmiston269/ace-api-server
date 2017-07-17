@@ -1,10 +1,11 @@
 const PORT = process.env.PORT || 5000;
+const API_PREFIX = process.env.API_PREFIX || '';
 const SESSION_SECRET = process.env.SESSION_SECRET;
-const API_PREFIX = process.env.API_PREFIX;
 
 const express = require('express');
 const http = require('http');
 const logger = require('morgan');
+const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
 const methodOverride = require('method-override');
@@ -13,13 +14,14 @@ const session = require('express-session');
 
 const config = require('ace-api/config.default');
 
-config.apiPrefix = API_PREFIX || 'api/latest';
+config.apiPrefix = API_PREFIX;
 
 const AceApiServer = require('./index');
 
 const app = express();
+app.use(helmet());
 app.use(errorHandler());
-app.use(logger('dev'));
+app.use(logger('tiny'));
 app.use(cookieParser());
 app.use(bodyParser.json({
   limit: '50mb',
@@ -31,6 +33,9 @@ app.use(bodyParser.urlencoded({
 app.use(methodOverride());
 app.use(session({
   secret: SESSION_SECRET,
+  cookie: {
+    maxAge: 7200,
+  },
   resave: true,
   saveUninitialized: true,
 }));
