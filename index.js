@@ -246,7 +246,9 @@ function AceApiServer (appOrRouter, serverConfig = {}, authMiddleware = null) {
   }
 
   if (config.environment === 'production' && config.forceHttps === true) {
-    appOrRouter.enable('trust proxy');
+    if (appOrRouter.enable) {
+      appOrRouter.enable('trust proxy');
+    }
     appOrRouter.use(forceHttps);
   }
 
