@@ -54,13 +54,22 @@ module.exports = (util, config) => {
       }
     }
 
-    const options = _.pickBy(req.query, (value, key) => {
+    let options = _.pickBy(req.query, (value, key) => {
       return /^(expiresIn|notBefore|audience|issuer|jwtid|subject|noTimestamp|header)$/.test(key);
+    });
+
+    options = _.mapValues(options, (value) => {
+      if (!isNaN(+value)) { // Check if value is a numeric string
+        return +value; // Convert numeric string to number
+      }
+      return value;
     });
 
     const jwt = new Jwt(config);
 
     const token = jwt.signToken(payload, options);
+
+    req.session.apiToken = token;
 
     res.status(200);
     res.send({

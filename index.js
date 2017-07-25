@@ -50,7 +50,7 @@ function AceApiServer (appOrRouter, serverConfig = {}, authMiddleware = null) {
   // Clone and extend config per request/session
 
   function omitUndefined(obj) {
-    _.forIn(obj, function(value, key, obj) {
+    _.forIn(obj, (value, key, obj) => {
       if (_.isPlainObject(value)) {
         value = omitUndefined(value);
 
@@ -201,7 +201,8 @@ function AceApiServer (appOrRouter, serverConfig = {}, authMiddleware = null) {
       res.status(401);
       res.send({
         code: 401,
-        message: 'Not authorised, token verification failed',
+        message: `Not authorised, token verification failed (${error.message})`,
+        error,
       });
       return;
     }
