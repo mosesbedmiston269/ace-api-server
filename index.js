@@ -1,4 +1,3 @@
-const env = require('node-env-file');
 const _ = require('lodash');
 const express = require('express');
 const Logger = require('le_node');
@@ -8,10 +7,6 @@ const memwatch = require('memwatch-next');
 const sizeof = require('object-sizeof');
 const deepFreeze = require('deep-freeze');
 const Jwt = require('ace-api/lib/jwt');
-
-if (!process.env.ENVIRONMENT) {
-  env('.env');
-}
 
 const defaultConfig = require('ace-api/config.default');
 
@@ -74,6 +69,12 @@ function AceApiServer (appOrRouter, serverConfig = {}, authMiddleware = null) {
     configClone.db.name = req.session.slug;
 
     return configClone;
+  }
+
+  function getConfigAsync (config, req) {
+    return new Promise((resolve) => {
+      resolve(getConfig(config, req));
+    });
   }
 
   // Cache
@@ -231,6 +232,15 @@ function AceApiServer (appOrRouter, serverConfig = {}, authMiddleware = null) {
     next();
   }
 
+  // Async middleware helper
+
+  function asyncMiddleware(fn) {
+    return (req, res, next) => {
+      Promise.resolve(fn(req, res, next))
+        .catch(next);
+    };
+  }
+
   // Router
 
   const router = express.Router();
@@ -265,6 +275,8 @@ function AceApiServer (appOrRouter, serverConfig = {}, authMiddleware = null) {
     router,
     cache,
     getConfig,
+    getConfigAsync,
+    asyncMiddleware,
     authMiddleware,
     cacheMiddleware,
     handleError,

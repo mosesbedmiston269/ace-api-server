@@ -240,13 +240,6 @@ module.exports = (util, config) => {
       .then(util.cacheAndSendResponse.bind(null, req, res), util.handleError.bind(null, res));
   });
 
-  util.router.get('/entities/filterValues.:ext?', util.authMiddleware, (req, res) => {
-    const entity = new Entity(util.getConfig(config, req));
-
-    entity.entityFilterValues(req.query)
-      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
-  });
-
   /**
    * @swagger
    * /entities:
@@ -288,7 +281,7 @@ module.exports = (util, config) => {
    *          items:
    *            $ref: '#/definitions/Entity'
    */
-  util.router.all('/entities/:view?/:list?.:ext?', util.cacheMiddleware, (req, res) => {
+  util.router.all('/entities.:ext?', util.cacheMiddleware, util.asyncMiddleware(async (req, res) => {
     let children = req.query.children !== undefined ? JSON.parse(req.query.children) : false;
     let parents = req.query.parents !== undefined ? JSON.parse(req.query.parents) : false;
 
@@ -306,17 +299,13 @@ module.exports = (util, config) => {
     }
     req.query.include_docs = true;
 
-    if (req.session.role === 'guest') {
-      req.query.state = 'published';
-    } else {
-      req.query.state = 'active';
-    }
+    const fullConfig = await util.getConfigAsync(config, req);
 
-    const entity = new Entity(util.getConfig(config, req));
+    const entity = new Entity(fullConfig);
 
-    entity.entityList(req.query, req.params.view, req.params.list, children, parents, req.session.role)
+    entity.entityList(req.query, children, parents, req.session.role)
       .then(util.cacheAndSendResponse.bind(null, req, res), util.handleError.bind(null, res));
-  });
+  }));
 
   util.router.get('/entity/revisions.:ext?', util.authMiddleware, (req, res) => {
     const entity = new Entity(util.getConfig(config, req));
