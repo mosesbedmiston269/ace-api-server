@@ -337,6 +337,7 @@ function AceApiServer (appOrRouter, serverConfig = {}, authMiddleware = null) {
   require('./routes/cache')(util, config);
   require('./routes/analytics')(util, config);
   require('./routes/auth')(util, config);
+  require('./routes/config')(util, config);
   require('./routes/debug')(util, config);
   require('./routes/ecommerce')(util, config);
   require('./routes/email')(util, config);
