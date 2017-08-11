@@ -7,7 +7,7 @@ const memwatch = require('memwatch-next');
 const sizeof = require('object-sizeof');
 const deepFreeze = require('deep-freeze');
 const Jwt = require('ace-api/lib/jwt');
-
+const roles = require('ace-api/lib/roles');
 const defaultConfig = require('ace-api/config.default');
 
 function AceApiServer (appOrRouter, serverConfig = {}, authMiddleware = null) {
@@ -41,6 +41,37 @@ function AceApiServer (appOrRouter, serverConfig = {}, authMiddleware = null) {
   }
 
   authMiddleware = authMiddleware || defaultAuthMiddleware;
+
+  // Permissions middleware
+
+  function permissionMiddleware(permission, req, res, next) {
+    if (!req.session.role) {
+      res.status(401);
+      res.send({
+        permission,
+        message: 'Error: role not defined in session.',
+      });
+      return;
+    }
+
+    if (req.session.role === 'super') {
+      next();
+      return;
+    }
+
+    const role = _.find(roles, { slug: req.session.role });
+
+    if (!role || role.permissions[permission] !== true) {
+      res.status(401);
+      res.send({
+        permission,
+        message: 'Sorry, you\'re not authorised to do this.',
+      });
+      return;
+    }
+
+    next();
+  }
 
   // Clone and extend config per request/session
 
@@ -278,6 +309,7 @@ function AceApiServer (appOrRouter, serverConfig = {}, authMiddleware = null) {
     getConfigAsync,
     asyncMiddleware,
     authMiddleware,
+    permissionMiddleware,
     cacheMiddleware,
     handleError,
     sendResponse,
@@ -333,7 +365,7 @@ function AceApiServer (appOrRouter, serverConfig = {}, authMiddleware = null) {
 
   // Bootstrap API
 
-  require('./routes/admin')(util, config);
+  // require('./routes/admin')(util, config);
   require('./routes/cache')(util, config);
   require('./routes/analytics')(util, config);
   require('./routes/auth')(util, config);
@@ -355,6 +387,7 @@ function AceApiServer (appOrRouter, serverConfig = {}, authMiddleware = null) {
   require('./routes/tools')(util, config);
   require('./routes/transcode')(util, config);
   require('./routes/upload')(util, config);
+  require('./routes/user')(util, config);
   require('./routes/zencode')(util, config);
 }
 
