@@ -3,33 +3,19 @@ const Taxonomy = require('ace-api/lib/taxonomy');
 
 module.exports = (util, config) => {
 
-  util.router.put('/taxonomy.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'taxonomyUpdate'), (req, res) => {
-    const taxonomy = new Taxonomy(util.getConfig(config, req));
+  util.router.post('/taxonomy.:ext?',
+    util.authMiddleware,
+    util.permissionMiddleware.bind(null, 'taxonomyUpdate'),
+    util.asyncMiddleware(async (req, res) => {
+      const taxonomy = new Taxonomy(util.getConfig(config, req));
 
-    taxonomy.update(req.body.taxonomy)
-      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
-  });
-
-  util.router.post('/taxonomy/term.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'taxonomyUpdate'), (req, res) => {
-    const taxonomy = new Taxonomy(util.getConfig(config, req));
-
-    taxonomy.createTerm(req.body.slug || req.body.taxonomySlug, req.body.term)
-      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
-  });
-
-  util.router.put('/taxonomy/term.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'taxonomyUpdate'), (req, res) => {
-    const taxonomy = new Taxonomy(util.getConfig(config, req));
-
-    taxonomy.updateTerm(req.query.term || req.body.term)
-      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
-  });
-
-  util.router.delete('/taxonomy/term.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'taxonomyUpdate'), (req, res) => {
-    const taxonomy = new Taxonomy(util.getConfig(config, req));
-
-    taxonomy.deleteTerm(req.query.term || req.body.term)
-      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
-  });
+      try {
+        util.sendResponse(res, await taxonomy.create(req.body.taxonomy));
+      } catch (error) {
+        util.handleError(res, error);
+      }
+    })
+  );
 
   /**
    * @swagger
@@ -75,10 +61,66 @@ module.exports = (util, config) => {
    *                    terms:
    *                      type: array
    */
-  util.router.get('/taxonomy.:ext?', util.cacheMiddleware, (req, res) => {
+  util.router.get('/taxonomy.:ext?',
+    util.cacheMiddleware,
+    util.asyncMiddleware(async (req, res) => {
+      const taxonomy = new Taxonomy(util.getConfig(config, req));
+
+      try {
+        util.sendResponse(res, await taxonomy.read(req.query.slug || req.query.taxonomySlug));
+      } catch (error) {
+        util.handleError(res, error);
+      }
+    })
+  );
+
+  util.router.put('/taxonomy.:ext?',
+    util.authMiddleware,
+    util.permissionMiddleware.bind(null, 'taxonomyUpdate'),
+    util.asyncMiddleware(async (req, res) => {
+      const taxonomy = new Taxonomy(util.getConfig(config, req));
+
+      try {
+        util.sendResponse(res, await taxonomy.update(req.body.taxonomy));
+      } catch (error) {
+        util.handleError(res, error);
+      }
+    })
+  );
+
+  util.router.delete('/taxonomy.:ext?',
+    util.authMiddleware,
+    util.permissionMiddleware.bind(null, 'taxonomyUpdate'),
+    util.asyncMiddleware(async (req, res) => {
+      const taxonomy = new Taxonomy(util.getConfig(config, req));
+
+      try {
+        util.sendResponse(res, await taxonomy.delete(req.body.taxonomySlug || req.body.taxonomySlugs || req.query.taxonomySlug || req.query.taxonomySlugs));
+      } catch (error) {
+        util.handleError(res, error);
+      }
+    })
+  );
+
+  util.router.post('/taxonomy/term.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'taxonomyUpdate'), (req, res) => {
     const taxonomy = new Taxonomy(util.getConfig(config, req));
 
-    taxonomy.read(req.query.slug || req.query.taxonomySlug)
-      .then(util.cacheAndSendResponse.bind(null, req, res), util.handleError.bind(null, res));
+    taxonomy.createTerm(req.body.slug || req.body.taxonomySlug, req.body.term)
+      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
+
+  util.router.put('/taxonomy/term.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'taxonomyUpdate'), (req, res) => {
+    const taxonomy = new Taxonomy(util.getConfig(config, req));
+
+    taxonomy.updateTerm(req.query.term || req.body.term)
+      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
+  });
+
+  util.router.delete('/taxonomy/term.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'taxonomyUpdate'), (req, res) => {
+    const taxonomy = new Taxonomy(util.getConfig(config, req));
+
+    taxonomy.deleteTerm(req.query.term || req.body.term)
+      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
+  });
+
 };

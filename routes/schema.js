@@ -51,7 +51,21 @@ module.exports = (util, config) => {
       const schema = new Schema(util.getConfig(config, req));
 
       try {
-        util.sendResponse(res, await schema.delete(req.query.schemaId || req.query.schemaIds));
+        util.sendResponse(res, await schema.delete(req.body.schemaSlug || req.body.schemaSlugs || req.query.schemaSlug || req.query.schemaSlugs));
+      } catch (error) {
+        util.handleError(res, error);
+      }
+    })
+  );
+
+  util.router.put('/schemas.:ext?',
+    util.authMiddleware,
+    util.permissionMiddleware.bind(null, 'schema'),
+    util.asyncMiddleware(async (req, res) => {
+      const schema = new Schema(util.getConfig(config, req));
+
+      try {
+        util.sendResponse(res, await schema.updateAll(req.body.schemas));
       } catch (error) {
         util.handleError(res, error);
       }

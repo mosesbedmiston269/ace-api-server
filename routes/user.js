@@ -51,7 +51,7 @@ module.exports = (util, config) => {
       const user = new User(util.getConfig(config, req));
 
       try {
-        util.sendResponse(res, await user.delete(req.query.userId || req.query.userIds));
+        util.sendResponse(res, await user.delete(req.body.userId || req.body.userIds || req.query.userId || req.query.userIds));
       } catch (error) {
         util.handleError(res, error);
       }
