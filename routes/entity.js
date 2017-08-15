@@ -240,6 +240,20 @@ module.exports = (util, config) => {
       .then(util.cacheAndSendResponse.bind(null, req, res), util.handleError.bind(null, res));
   });
 
+  util.router.get(
+    '/entities/field.:ext?',
+    util.cacheMiddleware,
+    util.asyncMiddleware(async (req, res) => {
+      const entity = new Entity(util.getConfig(config, req));
+
+      try {
+        util.sendResponse(res, await entity.fieldValues(req.query.slug || req.query.fieldSlug, req.query.searchTerm));
+      } catch (error) {
+        util.handleError(res, error);
+      }
+    })
+  );
+
   /**
    * @swagger
    * /entities:
@@ -281,31 +295,34 @@ module.exports = (util, config) => {
    *          items:
    *            $ref: '#/definitions/Entity'
    */
-  util.router.all('/entities.:ext?', util.cacheMiddleware, util.asyncMiddleware(async (req, res) => {
-    let children = req.query.children !== undefined ? JSON.parse(req.query.children) : false;
-    let parents = req.query.parents !== undefined ? JSON.parse(req.query.parents) : false;
+  util.router.all(
+    '/entities.:ext?',
+    util.cacheMiddleware,
+    (req, res) => {
+      let children = req.query.children !== undefined ? JSON.parse(req.query.children) : false;
+      let parents = req.query.parents !== undefined ? JSON.parse(req.query.parents) : false;
 
-    if (children === true) {
-      children = 1;
+      if (children === true) {
+        children = 1;
+      }
+      if (parents === true) {
+        parents = 1;
+      }
+
+      const keys = req.query.ids || req.query.id || req.body.ids || req.body.id;
+
+      if (keys) {
+        req.query.keys = _.isArray(keys) ? keys : [keys];
+      }
+      req.query.include_docs = true;
+
+
+      const entity = new Entity(util.getConfig(config, req));
+
+      entity.entityList(req.query, children, parents, req.session.role)
+        .then(util.cacheAndSendResponse.bind(null, req, res), util.handleError.bind(null, res));
     }
-    if (parents === true) {
-      parents = 1;
-    }
-
-    const keys = req.query.ids || req.query.id || req.body.ids || req.body.id;
-
-    if (keys) {
-      req.query.keys = _.isArray(keys) ? keys : [keys];
-    }
-    req.query.include_docs = true;
-
-    const fullConfig = await util.getConfigAsync(config, req);
-
-    const entity = new Entity(fullConfig);
-
-    entity.entityList(req.query, children, parents, req.session.role)
-      .then(util.cacheAndSendResponse.bind(null, req, res), util.handleError.bind(null, res));
-  }));
+  );
 
   util.router.get('/entity/revisions.:ext?', util.authMiddleware, (req, res) => {
     const entity = new Entity(util.getConfig(config, req));

@@ -6,6 +6,7 @@ const CircularJSON = require('circular-json');
 const memwatch = require('memwatch-next');
 const sizeof = require('object-sizeof');
 const deepFreeze = require('deep-freeze');
+const Helpers = require('ace-api/lib/helpers');
 const Jwt = require('ace-api/lib/jwt');
 const roles = require('ace-api/lib/roles');
 const defaultConfig = require('ace-api/config.default');
@@ -75,28 +76,9 @@ function AceApiServer (appOrRouter, serverConfig = {}, authMiddleware = null) {
 
   // Clone and extend config per request/session
 
-  function omitUndefined(obj) {
-    _.forIn(obj, (value, key, obj) => {
-      if (_.isPlainObject(value)) {
-        value = omitUndefined(value);
-
-        if (_.keys(value).length === 0) {
-          delete obj[key];
-        }
-      }
-
-      if (_.isUndefined(value)) {
-        delete obj[key];
-      }
-    });
-
-    return obj;
-  }
-
   function getConfig (config, req) {
-    const configClone = _.mergeWith({}, JSON.parse(JSON.stringify(config)), omitUndefined(_.cloneDeep(config)));
+    const configClone = Helpers.cloneConfig(config);
 
-    // configClone.db.name = req.session.dbName || req.session.slug || config.db.name;
     configClone.db.name = req.session.slug;
 
     return configClone;
