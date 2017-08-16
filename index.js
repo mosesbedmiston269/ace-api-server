@@ -11,8 +11,15 @@ const Jwt = require('ace-api/lib/jwt');
 const roles = require('ace-api/lib/roles');
 const defaultConfig = require('ace-api/config.default');
 
-function AceApiServer (appOrRouter, serverConfig = {}, authMiddleware = null) {
+function AceApiServer (app, serverConfig = {}, authMiddleware = null) {
   const config = deepFreeze(_.merge({}, defaultConfig, serverConfig));
+
+  // Allowed routes
+
+  function isAllowedRoute (req) {
+    const allowedRoutes = [];
+    return allowedRoutes.indexOf(req.path) > -1;
+  }
 
   // Allowed development routes
 
@@ -76,17 +83,17 @@ function AceApiServer (appOrRouter, serverConfig = {}, authMiddleware = null) {
 
   // Clone and extend config per request/session
 
-  function getConfig (config, req) {
+  function getConfig (config, slug) {
     const configClone = Helpers.cloneConfig(config);
 
-    configClone.db.name = req.session.slug;
+    configClone.db.name = slug;
 
     return configClone;
   }
 
-  function getConfigAsync (config, req) {
+  function getConfigAsync (config, slug) {
     return new Promise((resolve) => {
-      resolve(getConfig(config, req));
+      resolve(getConfig(config, slug));
     });
   }
 
@@ -186,7 +193,7 @@ function AceApiServer (appOrRouter, serverConfig = {}, authMiddleware = null) {
   const jwt = new Jwt(config);
 
   function sessionMiddleware (req, res, next) {
-    if (isAllowedDevRoute(req)) {
+    if (isAllowedRoute(req) || isAllowedDevRoute(req)) {
       next();
       return;
     }
@@ -270,15 +277,15 @@ function AceApiServer (appOrRouter, serverConfig = {}, authMiddleware = null) {
   }
 
   if (config.environment === 'production' && config.forceHttps === true) {
-    if (appOrRouter.enable) {
-      appOrRouter.enable('trust proxy');
+    if (app.enable) {
+      app.enable('trust proxy');
     }
-    appOrRouter.use(forceHttps);
+    app.use(forceHttps);
   }
 
-  appOrRouter.use(`/${config.apiPrefix}`, headerMiddleware, sessionMiddleware, router);
+  app.use(`/${config.apiPrefix}`, headerMiddleware, sessionMiddleware, router);
 
-  appOrRouter.get(`/${config.apiPrefix}`, (req, res) => {
+  app.get(`/${config.apiPrefix}`, (req, res) => {
     res.send('<pre> ______\n|A     |\n|  /\\  |\n| /  \\ |\n|(    )|\n|  )(  |\n|______|</pre>');
   });
 
@@ -333,7 +340,7 @@ function AceApiServer (appOrRouter, serverConfig = {}, authMiddleware = null) {
   }
 
   if (config.environment !== 'production') {
-    appOrRouter.use((req, res, next) => {
+    app.use((req, res, next) => {
       res.on('finish', afterResponse.bind(null, req, res));
       res.on('close', afterResponse.bind(null, req, res));
 
@@ -347,10 +354,9 @@ function AceApiServer (appOrRouter, serverConfig = {}, authMiddleware = null) {
 
   // Bootstrap API
 
-  // require('./routes/admin')(util, config);
-  require('./routes/cache')(util, config);
   require('./routes/analytics')(util, config);
   require('./routes/auth')(util, config);
+  require('./routes/cache')(util, config);
   require('./routes/config')(util, config);
   require('./routes/debug')(util, config);
   require('./routes/ecommerce')(util, config);
@@ -361,7 +367,6 @@ function AceApiServer (appOrRouter, serverConfig = {}, authMiddleware = null) {
   require('./routes/metadata')(util, config);
   require('./routes/pdf')(util, config);
   require('./routes/schema')(util, config);
-  require('./routes/settings')(util, config);
   require('./routes/shippo')(util, config);
   require('./routes/social')(util, config);
   require('./routes/stripe')(util, config);

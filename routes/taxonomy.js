@@ -7,7 +7,7 @@ module.exports = (util, config) => {
     util.authMiddleware,
     util.permissionMiddleware.bind(null, 'taxonomyUpdate'),
     util.asyncMiddleware(async (req, res) => {
-      const taxonomy = new Taxonomy(util.getConfig(config, req));
+      const taxonomy = new Taxonomy(util.getConfig(config, req.session.slug));
 
       try {
         util.sendResponse(res, await taxonomy.create(req.body.taxonomy));
@@ -64,7 +64,7 @@ module.exports = (util, config) => {
   util.router.get('/taxonomy.:ext?',
     util.cacheMiddleware,
     util.asyncMiddleware(async (req, res) => {
-      const taxonomy = new Taxonomy(util.getConfig(config, req));
+      const taxonomy = new Taxonomy(util.getConfig(config, req.session.slug));
 
       try {
         util.sendResponse(res, await taxonomy.read(req.query.slug || req.query.taxonomySlug));
@@ -78,7 +78,7 @@ module.exports = (util, config) => {
     util.authMiddleware,
     util.permissionMiddleware.bind(null, 'taxonomyUpdate'),
     util.asyncMiddleware(async (req, res) => {
-      const taxonomy = new Taxonomy(util.getConfig(config, req));
+      const taxonomy = new Taxonomy(util.getConfig(config, req.session.slug));
 
       try {
         util.sendResponse(res, await taxonomy.update(req.body.taxonomy));
@@ -92,7 +92,7 @@ module.exports = (util, config) => {
     util.authMiddleware,
     util.permissionMiddleware.bind(null, 'taxonomyUpdate'),
     util.asyncMiddleware(async (req, res) => {
-      const taxonomy = new Taxonomy(util.getConfig(config, req));
+      const taxonomy = new Taxonomy(util.getConfig(config, req.session.slug));
 
       try {
         util.sendResponse(res, await taxonomy.delete(req.body.taxonomySlug || req.body.taxonomySlugs || req.query.taxonomySlug || req.query.taxonomySlugs));
@@ -103,21 +103,21 @@ module.exports = (util, config) => {
   );
 
   util.router.post('/taxonomy/term.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'taxonomyUpdate'), (req, res) => {
-    const taxonomy = new Taxonomy(util.getConfig(config, req));
+    const taxonomy = new Taxonomy(util.getConfig(config, req.session.slug));
 
     taxonomy.createTerm(req.body.slug || req.body.taxonomySlug, req.body.term)
       .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
 
   util.router.put('/taxonomy/term.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'taxonomyUpdate'), (req, res) => {
-    const taxonomy = new Taxonomy(util.getConfig(config, req));
+    const taxonomy = new Taxonomy(util.getConfig(config, req.session.slug));
 
     taxonomy.updateTerm(req.query.term || req.body.term)
       .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
 
   util.router.delete('/taxonomy/term.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'taxonomyUpdate'), (req, res) => {
-    const taxonomy = new Taxonomy(util.getConfig(config, req));
+    const taxonomy = new Taxonomy(util.getConfig(config, req.session.slug));
 
     taxonomy.deleteTerm(req.query.term || req.body.term)
       .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));

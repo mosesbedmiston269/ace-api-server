@@ -6,7 +6,7 @@ module.exports = (util, config) => {
     util.authMiddleware,
     util.permissionMiddleware.bind(null, 'user'),
     util.asyncMiddleware(async (req, res) => {
-      const user = new User(util.getConfig(config, req));
+      const user = new User(util.getConfig(config, req.session.slug));
 
       try {
         util.sendResponse(res, await user.create(req.body.user));
@@ -20,7 +20,7 @@ module.exports = (util, config) => {
     util.authMiddleware,
     util.permissionMiddleware.bind(null, 'user'),
     util.asyncMiddleware(async (req, res) => {
-      const user = new User(util.getConfig(config, req));
+      const user = new User(util.getConfig(config, req.session.slug));
 
       try {
         util.sendResponse(res, await user.read(req.query.userId));
@@ -34,7 +34,7 @@ module.exports = (util, config) => {
     util.authMiddleware,
     util.permissionMiddleware.bind(null, 'user'),
     util.asyncMiddleware(async (req, res) => {
-      const user = new User(util.getConfig(config, req));
+      const user = new User(util.getConfig(config, req.session.slug));
 
       try {
         util.sendResponse(res, await user.update(req.body.user));
@@ -48,7 +48,7 @@ module.exports = (util, config) => {
     util.authMiddleware,
     util.permissionMiddleware.bind(null, 'user'),
     util.asyncMiddleware(async (req, res) => {
-      const user = new User(util.getConfig(config, req));
+      const user = new User(util.getConfig(config, req.session.slug));
 
       try {
         util.sendResponse(res, await user.delete(req.body.userId || req.body.userIds || req.query.userId || req.query.userIds));

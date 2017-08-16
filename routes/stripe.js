@@ -7,7 +7,7 @@ module.exports = (util, config) => {
     const token = req.body.token || JSON.parse(req.query.token);
     const order = req.body.order || JSON.parse(req.query.order);
 
-    const stripe = new Stripe(util.getConfig(config, req));
+    const stripe = new Stripe(util.getConfig(config, req.session.slug));
 
     stripe.checkout(token, order)
       .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
@@ -17,21 +17,14 @@ module.exports = (util, config) => {
     const order = req.body.order || JSON.parse(req.query.order);
     const amount = Number(req.body.amount || req.query.amount || 0) * 100;
 
-    const stripe = new Stripe(util.getConfig(config, req));
+    const stripe = new Stripe(util.getConfig(config, req.session.slug));
 
     stripe.refund(order, amount)
       .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
 
-  util.router.get('/stripe/settings.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'ecommerce'), (req, res) => {
-    const stripe = new Stripe(util.getConfig(config, req));
-
-    stripe.getSettings()
-      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
-  });
-
   util.router.get('/stripe/account.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'ecommerce'), (req, res) => {
-    const stripe = new Stripe(util.getConfig(config, req));
+    const stripe = new Stripe(util.getConfig(config, req.session.slug));
 
     stripe.retrieveAccount()
       .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));

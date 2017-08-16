@@ -33,7 +33,7 @@ module.exports = (util, config) => {
           return;
         }
 
-        const file = new File(util.getConfig(config, req));
+        const file = new File(util.getConfig(config, req.session.slug));
         const fileName = path.join('/tmp', req.session.slug, uploadResult.filename);
 
         if (options.type === 'field' && options.fieldType === 'attachment') {
@@ -69,7 +69,7 @@ module.exports = (util, config) => {
 
         if (options.type === 'field' && /^(video|audio)$/.test(options.fieldType)) {
           const s3 = new S3(config);
-          const zencode = new Zencode(util.getConfig(config, req));
+          const zencode = new Zencode(util.getConfig(config, req.session.slug));
 
           let mediaType;
           let outputs;

@@ -6,7 +6,7 @@ const Tools = require('ace-api/lib/tools');
 module.exports = (util, config) => {
 
   util.router.get('/tools/export-db.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'tools'), (req, res) => {
-    const tools = new Tools(util.getConfig(config, req));
+    const tools = new Tools(util.getConfig(config, req.session.slug));
 
     tools.getDb()
       .then((db) => {
@@ -18,7 +18,7 @@ module.exports = (util, config) => {
   });
 
   util.router.post('/tools/import-db.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'tools'), multiparty, (req, res) => {
-    const tools = new Tools(util.getConfig(config, req));
+    const tools = new Tools(util.getConfig(config, req.session.slug));
 
     tools.importDb(req.files.payload)
       .then((results) => {
@@ -29,7 +29,7 @@ module.exports = (util, config) => {
   });
 
   util.router.get('/tools/changes.:ext?', util.authMiddleware, (req, res) => {
-    const tools = new Tools(util.getConfig(config, req));
+    const tools = new Tools(util.getConfig(config, req.session.slug));
 
     tools.getChanges()
       .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));

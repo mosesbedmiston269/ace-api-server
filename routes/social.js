@@ -1,9 +1,7 @@
 const Promise = require('bluebird');
-const Settings = require('ace-api/lib/settings');
+const ClientConfig = require('ace-api/lib/client-config');
 const Instagram = require('ace-api/lib/instagram');
 const Twitter = require('twitter');
-
-const co = Promise.coroutine;
 
 module.exports = (util, config) => {
 
@@ -18,43 +16,54 @@ module.exports = (util, config) => {
     access_token_secret: config.twitter.accessTokenSecret,
   }));
 
-  let instagramSettings;
+  const instagramAccessTokenMap = {};
 
-  util.router.get(/\/social\/twitter\/([^/]+)\/?(.+)?/, util.cacheMiddleware, (req, res) => {
-    const method = req.params[0];
-    const params = req.params[1].split('/').filter(param => param !== '');
+  util.router.get(
+    /\/social\/twitter\/([^/]+)\/?(.+)?/,
+    util.cacheMiddleware,
+    (req, res) => {
+      const method = req.params[0];
+      const params = req.params[1].split('/').filter(param => param !== '');
 
-    twitter[`${method}Async`](params.join('/'), req.query)
-      .then(util.cacheAndSendResponse.bind(null, req, res), util.handleError.bind(null, res));
-  });
-
-  util.router.get(/\/social\/instagram\/([^/]+)\/?(.+)?/, util.cacheMiddleware, co(function* (req, res) {
-    const method = req.params[0];
-    const params = req.params[1].split('/').filter(param => param !== '');
-
-    if (!instagramSettings) {
-      const settings = new Settings(util.getConfig(config, req));
-
-      instagramSettings = yield settings.settings().then(settings => settings.instagram);
-
-      if (!instagramSettings.access_token) {
-        util.handleError(res, new Error('Instagram: access_token required'));
-        return;
-      }
+      twitter[`${method}Async`](params.join('/'), req.query)
+        .then(util.cacheAndSendResponse.bind(null, req, res), util.handleError.bind(null, res));
     }
+  );
 
-    req.query.access_token = instagramSettings.access_token;
+  util.router.get(
+    /\/social\/instagram\/([^/]+)\/?(.+)?/,
+    util.cacheMiddleware,
+    util.asyncMiddleware(async (req, res) => {
+      const method = req.params[0];
+      const params = req.params[1].split('/').filter(param => param !== '');
 
-    instagram[method](params.join('/'), req.query)
-      .then((response) => {
-        const result = JSON.parse(response);
+      const reqConfig = util.getConfig(config, req.session.slug);
+
+      if (!instagramAccessTokenMap[reqConfig.slug]) {
+        const cc = new ClientConfig(reqConfig);
+
         try {
-          delete result.pagination.next_url;
+          const clientConfig = await cc.get();
+          instagramAccessTokenMap[reqConfig.slug] = clientConfig.provider.instagram.access_token;
         } catch (error) {
-          //
+          util.handleError(res, new Error('Instagram: access_token required'));
+          return;
         }
-        util.cacheAndSendResponse(req, res, result);
-      }, util.handleError.bind(null, res));
-  }));
+      }
+
+      req.query.access_token = instagramAccessTokenMap[reqConfig.slug];
+
+      instagram[method](params.join('/'), req.query)
+        .then((response) => {
+          const result = JSON.parse(response);
+          try {
+            delete result.pagination.next_url;
+          } catch (error) {
+            //
+          }
+          util.cacheAndSendResponse(req, res, result);
+        }, util.handleError.bind(null, res));
+    })
+  );
 
 };

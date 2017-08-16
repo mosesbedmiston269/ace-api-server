@@ -4,22 +4,8 @@ const Ecommerce = require('ace-api/lib/ecommerce');
 
 module.exports = (util, config) => {
 
-  util.router.get('/ecommerce/settings.:ext?', (req, res) => {
-    const ecommerce = new Ecommerce(util.getConfig(config, req));
-
-    ecommerce.settings()
-      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
-  });
-
-  util.router.put('/ecommerce/settings.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'ecommerce'), (req, res) => {
-    const ecommerce = new Ecommerce(util.getConfig(config, req));
-
-    ecommerce.settings(req.body.settings)
-      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
-  });
-
   util.router.get('/ecommerce/order/message/:message.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'ecommerce'), (req, res) => {
-    const ecommerce = new Ecommerce(util.getConfig(config, req));
+    const ecommerce = new Ecommerce(util.getConfig(config, req.session.slug));
 
     ecommerce.getOrder(req.query.orderId)
       .then((order) => {
@@ -36,7 +22,7 @@ module.exports = (util, config) => {
       req.query.sort = JSON.stringify(req.query.sort).replace(/\\"/g, '');
     }
 
-    const ecommerce = new Ecommerce(util.getConfig(config, req));
+    const ecommerce = new Ecommerce(util.getConfig(config, req.session.slug));
 
     ecommerce.getType(req.params.type, req.query)
       .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
@@ -48,7 +34,7 @@ module.exports = (util, config) => {
       return;
     }
 
-    const ecommerce = new Ecommerce(util.getConfig(config, req));
+    const ecommerce = new Ecommerce(util.getConfig(config, req.session.slug));
 
     ecommerce.setType(req.params.type, req.body.item)
       .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
@@ -60,14 +46,14 @@ module.exports = (util, config) => {
       return;
     }
 
-    const ecommerce = new Ecommerce(util.getConfig(config, req));
+    const ecommerce = new Ecommerce(util.getConfig(config, req.session.slug));
 
     ecommerce.deleteType(req.body.item)
       .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
 
   util.router.get('/ecommerce/discount/:code.:ext?', (req, res) => {
-    const ecommerce = new Ecommerce(util.getConfig(config, req));
+    const ecommerce = new Ecommerce(util.getConfig(config, req.session.slug));
 
     ecommerce.verifyDiscount(req.params.code)
       .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));

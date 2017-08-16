@@ -6,7 +6,7 @@ module.exports = (util, config) => {
     util.authMiddleware,
     util.permissionMiddleware.bind(null, 'schema'),
     util.asyncMiddleware(async (req, res) => {
-      const schema = new Schema(util.getConfig(config, req));
+      const schema = new Schema(util.getConfig(config, req.session.slug));
 
       try {
         util.sendResponse(res, await schema.create(req.body.schema));
@@ -20,7 +20,7 @@ module.exports = (util, config) => {
     util.authMiddleware,
     util.permissionMiddleware.bind(null, 'schema'),
     util.asyncMiddleware(async (req, res) => {
-      const schema = new Schema(util.getConfig(config, req));
+      const schema = new Schema(util.getConfig(config, req.session.slug));
 
       try {
         util.sendResponse(res, await schema.read(req.query.schemaId));
@@ -34,7 +34,7 @@ module.exports = (util, config) => {
     util.authMiddleware,
     util.permissionMiddleware.bind(null, 'schema'),
     util.asyncMiddleware(async (req, res) => {
-      const schema = new Schema(util.getConfig(config, req));
+      const schema = new Schema(util.getConfig(config, req.session.slug));
 
       try {
         util.sendResponse(res, await schema.update(req.body.schema));
@@ -48,7 +48,7 @@ module.exports = (util, config) => {
     util.authMiddleware,
     util.permissionMiddleware.bind(null, 'schema'),
     util.asyncMiddleware(async (req, res) => {
-      const schema = new Schema(util.getConfig(config, req));
+      const schema = new Schema(util.getConfig(config, req.session.slug));
 
       try {
         util.sendResponse(res, await schema.delete(req.body.schemaSlug || req.body.schemaSlugs || req.query.schemaSlug || req.query.schemaSlugs));
@@ -62,7 +62,7 @@ module.exports = (util, config) => {
     util.authMiddleware,
     util.permissionMiddleware.bind(null, 'schema'),
     util.asyncMiddleware(async (req, res) => {
-      const schema = new Schema(util.getConfig(config, req));
+      const schema = new Schema(util.getConfig(config, req.session.slug));
 
       try {
         util.sendResponse(res, await schema.updateAll(req.body.schemas));
