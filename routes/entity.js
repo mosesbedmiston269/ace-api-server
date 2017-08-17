@@ -228,10 +228,15 @@ module.exports = (util, config) => {
       parents = 1;
     }
 
+    query.use_index = ['entityIndex', 'entity'];
+
     if (req.session.role === 'guest') {
-      query.use_index = ['entityIndex', 'published'];
-    } else {
-      query.use_index = ['entityIndex', 'active'];
+      query.selector = {
+        $and: [
+          { published: true },
+          query.selector,
+        ],
+      };
     }
 
     const entity = new Entity(util.getConfig(config, req.session.slug));

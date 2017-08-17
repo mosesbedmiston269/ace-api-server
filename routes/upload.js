@@ -36,7 +36,7 @@ module.exports = (util, config) => {
         const file = new File(util.getConfig(config, req.session.slug));
         const fileName = path.join('/tmp', req.session.slug, uploadResult.filename);
 
-        if (options.type === 'field' && options.fieldType === 'attachment') {
+        if (options.type === 'attachment') {
           const s3 = new S3(config);
 
           s3.prepareUpload(config.aws.s3.bucket, fileName, req.session.slug)
@@ -67,18 +67,18 @@ module.exports = (util, config) => {
             .catch(util.handleError.bind(null, res));
         }
 
-        if (options.type === 'field' && /^(video|audio)$/.test(options.fieldType)) {
+        if (/^(video|audio)$/.test(options.type)) {
           const s3 = new S3(config);
           const zencode = new Zencode(util.getConfig(config, req.session.slug));
 
           let mediaType;
           let outputs;
 
-          if (options.fieldType === 'video') {
+          if (options.type === 'video') {
             mediaType = 'video';
             outputs = options.settings.videoOutputs;
           }
-          if (options.fieldType === 'audio') {
+          if (options.type === 'audio') {
             mediaType = 'audio';
             outputs = options.settings.audioOutputs;
           }
