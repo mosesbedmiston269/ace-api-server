@@ -1,8 +1,3 @@
-const env = require('node-env-file');
-
-if (!process.env.ENVIRONMENT) {
-  env('.env');
-}
 const API_PORT = process.env.PORT || 5000;
 const DOCS_PORT = process.env.DOCS_PORT || 3000;
 

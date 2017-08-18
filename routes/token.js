@@ -14,11 +14,6 @@ module.exports = (util, config) => {
    *    produces:
    *      - application/json
    *    parameters:
-   *      - name: role
-   *        description: Role for token payload (super user only)
-   *        in: query
-   *        required: false
-   *        type: number
    *      - name: slug
    *        description: Slug for token payload (super user only)
    *        in: query
@@ -26,6 +21,11 @@ module.exports = (util, config) => {
    *        type: number
    *      - name: userId
    *        description: User ID for token payload (super user only)
+   *        in: query
+   *        required: false
+   *        type: number
+   *      - name: role
+   *        description: Role for token payload (super user only)
    *        in: query
    *        required: false
    *        type: number
