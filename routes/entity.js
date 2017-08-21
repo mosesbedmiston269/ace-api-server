@@ -252,7 +252,7 @@ module.exports = (util, config) => {
       const entity = new Entity(util.getConfig(config, req.session.slug));
 
       try {
-        util.sendResponse(res, await entity.fieldValues(req.query.slug || req.query.fieldSlug, req.query.searchTerm));
+        util.cacheAndSendResponse(req, res, await entity.fieldValues(req.query.slug || req.query.fieldSlug, req.query.searchTerm));
       } catch (error) {
         util.handleError(res, error);
       }
@@ -329,7 +329,7 @@ module.exports = (util, config) => {
     }
   );
 
-  util.router.get('/entity/revisions.:ext?', util.authMiddleware, (req, res) => {
+  util.router.get('/entity/revisions.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'entityRead'), (req, res) => {
     const entity = new Entity(util.getConfig(config, req.session.slug));
 
     entity.entityRevisions(req.query.id)

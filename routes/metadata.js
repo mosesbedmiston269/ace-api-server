@@ -30,7 +30,7 @@ module.exports = (util, config) => {
       const clientConfig = await cc.get();
 
       try {
-        util.sendResponse(res, clientConfig.client.metadata);
+        util.cacheAndSendResponse(req, res, clientConfig.client.metadata);
       } catch (error) {
         util.handleError(res, error);
       }

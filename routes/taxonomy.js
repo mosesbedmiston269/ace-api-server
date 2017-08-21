@@ -67,7 +67,7 @@ module.exports = (util, config) => {
       const taxonomy = new Taxonomy(util.getConfig(config, req.session.slug));
 
       try {
-        util.sendResponse(res, await taxonomy.read(req.query.slug || req.query.taxonomySlug));
+        util.cacheAndSendResponse(req, res, await taxonomy.read(req.query.slug || req.query.taxonomySlug));
       } catch (error) {
         util.handleError(res, error);
       }

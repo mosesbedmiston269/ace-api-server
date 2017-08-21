@@ -117,7 +117,7 @@ function AceApiServer (app, serverConfig = {}, authMiddleware = null) {
 
   function cacheMiddleware (req, res, next) {
     if (config.cache.enabled) {
-      const key = req.url.replace(`/${config.apiPrefix}`, '');
+      const key = `${req.session.slug}${config.apiPrefix ? req.url.replace(`/${config.apiPrefix}`, '') : req.url}`;
       const useCachedResponse = config.cache.enabled && cache.has(key) && req.session.role === 'guest'; // TODO: Replace 'guest' with constant
 
       if (useCachedResponse) {
@@ -159,7 +159,7 @@ function AceApiServer (app, serverConfig = {}, authMiddleware = null) {
 
   function cacheAndSendResponse (req, res, body) {
     if (config.cache.enabled && req.session.role === 'guest') { // TODO: Replace 'guest' with constant
-      cache.set(req.url, body);
+      cache.set(`${req.session.slug}${req.url}`, body);
     }
 
     res.status(200);
@@ -216,7 +216,7 @@ function AceApiServer (app, serverConfig = {}, authMiddleware = null) {
 
       req.session.userId = payload.userId;
       req.session.slug = payload.slug;
-      req.session.role = payload.role;
+      req.session.role = payload.role || 'guest'; // TODO: Replace 'guest' with constant
 
     } catch (error) {
       res.status(401);
