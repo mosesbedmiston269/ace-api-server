@@ -39,19 +39,19 @@ module.exports = (util, config) => {
 
       const reqConfig = util.getConfig(config, req.session.slug);
 
-      if (!instagramAccessTokenMap[reqConfig.slug]) {
+      if (!instagramAccessTokenMap[req.session.slug]) {
         const cc = new ClientConfig(reqConfig);
 
         try {
           const clientConfig = await cc.get();
-          instagramAccessTokenMap[reqConfig.slug] = clientConfig.provider.instagram.access_token;
+          instagramAccessTokenMap[req.session.slug] = clientConfig.provider.instagram.access_token;
         } catch (error) {
           util.handleError(res, new Error('Instagram: access_token required'));
           return;
         }
       }
 
-      req.query.access_token = instagramAccessTokenMap[reqConfig.slug];
+      req.query.access_token = instagramAccessTokenMap[req.session.slug];
 
       instagram[method](params.join('/'), req.query)
         .then((response) => {
