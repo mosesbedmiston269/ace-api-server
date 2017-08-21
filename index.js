@@ -172,6 +172,7 @@ function AceApiServer (app, serverConfig = {}, authMiddleware = null) {
     const headers = {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET,PUT,POST,DELETE,OPTIONS',
+      'Access-Control-Expose-Headers': 'X-Slug, X-Role, X-User-Id',
     };
 
     if (req.headers['access-control-request-headers']) {
