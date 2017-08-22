@@ -375,7 +375,7 @@ function AceApiServer (app, serverConfig = {}, authMiddleware = null) {
   require('./routes/taxonomy')(util, config);
   require('./routes/token')(util, config);
   require('./routes/tools')(util, config);
-  require('./routes/transcode')(util, config);
+  // require('./routes/transcode')(util, config);
   require('./routes/upload')(util, config);
   require('./routes/user')(util, config);
   require('./routes/zencode')(util, config);
