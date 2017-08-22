@@ -25,6 +25,47 @@ http://petstore.swagger.io/?url=https://rawgit.com/StudioThomas/ace-api-server/m
     DEV_USER_ID=
     DEV_ROLE=
 
+    METER_CLOUDANT_REQUEST=false
+    METER_CLOUDANT_INTERVAL=false
+
+    ASSIST_URL=
+    ASSIST_USERNAME=
+    ASSIST_PASSWORD=
+
+    EMBEDLY_API_KEY=
+
+    LOGENTRIES_TOKEN=
+
+    AWS_ACCESS_KEY_ID=
+    AWS_ACCESS_KEY_SECRET=
+
+    REDIS_HOST=
+    REDIS_PORT=
+    REDIS_PASSWORD=
+
+    STRIPE_CLIENT_ID=
+    STRIPE_CLIENT_SECRET=
+    STRIPE_API_KEY=
+
+    INSTAGRAM_CLIENT_ID=
+    INSTAGRAM_CLIENT_SECRET=
+
+    VIMEO_CLIENT_ID=
+    VIMEO_CLIENT_SECRET=
+
+    AWS_S3_BUCKET=
+
+    ZENCODER_API_KEY=
+    ZENCODER_S3_BUCKET=
+    ZENCODER_S3_CREDENTIALS=
+
+    TWITTER_ACCESS_TOKEN_KEY=
+    TWITTER_ACCESS_TOKEN_SECRET=
+    TWITTER_CONSUMER_KEY=
+    TWITTER_CONSUMER_SECRET=
+
+    GOOGLE_APIS_JSON_KEY=
+
 ### Useful
 
     # Heroku rebuild (similar to rm -rf node_modules locally)
