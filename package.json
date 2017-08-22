@@ -11,7 +11,7 @@
   "repository": "https://github.com/studiothomas/ace-api-server.git",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon serve --exec 'node -r dotenv/config'",
+    "dev": "nodemon dev --exec 'node -r dotenv/config'",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "apidoc": {

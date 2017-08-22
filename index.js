@@ -86,6 +86,7 @@ function AceApiServer (app, serverConfig = {}, authMiddleware = null) {
   function getConfig (config, slug) {
     const configClone = Helpers.cloneConfig(config);
 
+    configClone.slug = slug;
     configClone.db.name = slug;
 
     return configClone;

@@ -2,10 +2,10 @@ const Pdf = require('ace-api/lib/pdf');
 const Helpers = require('ace-api/lib/helpers');
 
 module.exports = (util, config) => {
-  util.router.get('/pdf/view/:template?/:id?.:ext?', (req, res) => {
+  util.router.get('/pdf/view.:ext?', (req, res) => {
     const pdf = new Pdf(util.getConfig(config, req.session.slug));
 
-    pdf.getPayload(req.params.template || req.query.template, req.params.id || req.query.id, req.session.role)
+    pdf.getPayload(req.query.template, req.query.id, req.session.role)
       .then((payload) => {
         pdf.getPdf(payload)
           .then((pdf) => {
@@ -17,10 +17,10 @@ module.exports = (util, config) => {
       }, util.handleError.bind(null, res));
   });
 
-  util.router.get('/pdf/download/:template?/:id?.:ext?', (req, res) => {
+  util.router.get('/pdf/download.:ext?', (req, res) => {
     const pdf = new Pdf(util.getConfig(config, req.session.slug));
 
-    pdf.getPayload(req.params.template || req.query.template, req.params.id || req.query.id, req.session.role)
+    pdf.getPayload(req.query.template, req.query.id, req.session.role)
       .then((payload) => {
         pdf.getPdf(payload)
           .then((pdf) => {
@@ -32,20 +32,20 @@ module.exports = (util, config) => {
       }, util.handleError.bind(null, res));
   });
 
-  util.router.get('/pdf/payload/:template?/:id?.:ext?', (req, res) => {
+  util.router.get('/pdf/payload.:ext?', (req, res) => {
     const pdf = new Pdf(util.getConfig(config, req.session.slug));
 
-    pdf.getPayload(req.params.template || req.query.template, req.params.id || req.query.id, req.session.role)
+    pdf.getPayload(req.query.template, req.query.id, req.session.role)
       .then((payload) => {
         res.status(200);
         res.json(payload);
       }, util.handleError.bind(null, res));
   });
 
-  util.router.get('/pdf/:template?/:id?.:ext?', (req, res) => {
+  util.router.get('/pdf/submit.:ext?', (req, res) => {
     const pdf = new Pdf(util.getConfig(config, req.session.slug));
 
-    pdf.getPayload(req.params.template || req.query.template, req.params.id || req.query.id, req.session.role)
+    pdf.getPayload(req.query.template, req.query.id, req.session.role)
       .then((payload) => {
         payload = Helpers.stringify(payload);
 

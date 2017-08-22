@@ -2,7 +2,6 @@ const Email = require('ace-api/lib/email');
 const Entity = require('ace-api/lib/entity');
 
 module.exports = (util, config) => {
-  const email = new Email(config);
 
   /**
    * @swagger
@@ -37,8 +36,6 @@ module.exports = (util, config) => {
   util.router.all('/email/template.:ext?', (req, res) => {
     const input = Object.keys(req.body).length ? req.body : req.query || {};
 
-    const templateSlug = input.templateSlug;
-
     const options = {
       preview: input.preview ? JSON.parse(input.preview) : false,
       data: input.data ? JSON.parse(input.data) : false,
@@ -51,7 +48,9 @@ module.exports = (util, config) => {
         return;
       }
 
-      email.getTemplate(templateSlug, data, options)
+      const email = new Email(util.getConfig(config, req.session.slug));
+
+      email.getTemplate(`${req.session.slug}/${input.templateSlug}`, data, options)
         .then((template) => {
           util.sendResponse(res, template.html);
         }, util.handleError.bind(null, res));
@@ -79,6 +78,8 @@ module.exports = (util, config) => {
   });
 
   util.router.post('/email/subscribe.:ext?', (req, res) => {
+    const email = new Email(util.getConfig(config, req.session.slug));
+
     email.subscribe({
       email: req.body.email || req.query.email,
       name: req.body.name || req.query.name || '',
