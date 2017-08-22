@@ -24,7 +24,7 @@ module.exports = (util, config) => {
     Auth.requirePermission.bind(null, 'settings'),
     (req, res) => {
       res.status(req.query.error ? 500 : 200);
-      res.send(`${(req.query.error_description ? req.query.error_description : 'Successfully authenticated')} (${req.params.provider})`);
+      res.send(`${req.params.provider}: ${(req.query.error_description ? req.query.error_description : 'successfully authenticated')}`);
     }
   );
 
