@@ -8,7 +8,7 @@ const sizeof = require('object-sizeof');
 const deepFreeze = require('deep-freeze');
 const Helpers = require('ace-api/lib/helpers');
 const Jwt = require('ace-api/lib/jwt');
-const roles = require('ace-api/lib/roles');
+const Roles = require('ace-api/lib/roles');
 const defaultConfig = require('ace-api/config.default');
 
 function AceApiServer (app, serverConfig = {}, authMiddleware = null) {
@@ -67,9 +67,7 @@ function AceApiServer (app, serverConfig = {}, authMiddleware = null) {
       return;
     }
 
-    const role = _.find(roles, { slug: req.session.role });
-
-    if (!role || role.permissions[permission] !== true) {
+    if (!Roles.role(req.session.role) || Roles.role(req.session.role).permissions[permission] !== true) {
       res.status(401);
       res.send({
         permission,
