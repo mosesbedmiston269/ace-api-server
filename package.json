@@ -1,6 +1,6 @@
 {
   "name": "ace-api-server",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "description": "ACE API Server",
   "author": {
     "name": "Studio Thomas",
@@ -24,7 +24,7 @@
     "node": "8.x"
   },
   "dependencies": {
-    "ace-api": "^0.5.6",
+    "ace-api": "^0.5.7",
     "bluebird": "^3.5.0",
     "body-parser": "^1.17.2",
     "circular-json": "^0.3.3",
@@ -51,9 +51,9 @@
   },
   "devDependencies": {
     "dotenv": "^4.0.0",
-    "eslint": "^4.4.1",
+    "eslint": "^4.5.0",
     "eslint-config-airbnb": "^15.1.0",
-    "eslint-config-airbnb-base": "^11.3.1",
+    "eslint-config-airbnb-base": "^11.3.2",
     "eslint-plugin-import": "^2.7.0",
     "gulp": "^3.9.1",
     "gulp-livereload": "^3.8.1",
@@ -61,6 +61,6 @@
     "serve-static": "^1.12.4",
     "swagger-jsdoc": "^1.9.7",
     "swagger-ui": "^2.2.10",
-    "swagger-ui-dist": "^3.1.5"
+    "swagger-ui-dist": "^3.1.7"
   }
 }
