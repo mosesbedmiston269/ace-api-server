@@ -24,7 +24,7 @@
     "node": "8.x"
   },
   "dependencies": {
-    "ace-api": "^0.5.7",
+    "ace-api": "^0.5.8",
     "bluebird": "^3.5.0",
     "body-parser": "^1.17.2",
     "circular-json": "^0.3.3",

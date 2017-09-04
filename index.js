@@ -368,6 +368,7 @@ function AceApiServer (app, serverConfig = {}, authMiddleware = null) {
   require('./routes/metadata')(util, config);
   require('./routes/pdf')(util, config);
   require('./routes/schema')(util, config);
+  require('./routes/settings')(util, config);
   require('./routes/shippo')(util, config);
   require('./routes/social')(util, config);
   require('./routes/stripe')(util, config);
