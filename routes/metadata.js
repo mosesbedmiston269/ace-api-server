@@ -11,7 +11,7 @@ module.exports = (util, config) => {
    *    summary: Get metadata
    *    produces:
    *      - application/json
-   *    parameters:
+   *    parameters: []
    *    responses:
    *      200:
    *        description: Metadata

@@ -12,12 +12,17 @@ module.exports = {
     basePath: '/api/latest',
     schemes: ['http', 'https'],
     securityDefinitions: {
-      jwt: {
+      ApiToken: {
         type: 'apiKey',
         in: 'header',
         name: 'X-Api-Token',
       },
     },
+    security: [
+      {
+        ApiToken: [],
+      },
+    ],
     responses: {
       UnauthorizedError: {
         description: 'API key is missing or invalid',

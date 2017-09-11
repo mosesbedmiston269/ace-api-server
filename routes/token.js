@@ -18,17 +18,17 @@ module.exports = (util, config) => {
    *        description: Slug for token payload (super user only)
    *        in: query
    *        required: false
-   *        type: number
+   *        type: string
    *      - name: userId
    *        description: User ID for token payload (super user only)
    *        in: query
    *        required: false
-   *        type: number
+   *        type: string
    *      - name: role
    *        description: Role for token payload (super user only)
    *        in: query
    *        required: false
-   *        type: number
+   *        type: string
    *      - name: expiresIn
    *        description: Duration of token in seconds
    *        in: query

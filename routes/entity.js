@@ -31,7 +31,7 @@ module.exports = (util, config) => {
    *      published:
    *        type: boolean
    *      publishedAt:
-   *        type: date
+   *        type: string
    */
 
   /**
@@ -44,7 +44,7 @@ module.exports = (util, config) => {
    *    description: Show all indexes, use this to find fields available for search/query.
    *    produces:
    *      - application/json
-   *    parameters:
+   *    parameters: []
    *    responses:
    *      200:
    *        description: Indexes
@@ -266,7 +266,7 @@ module.exports = (util, config) => {
    *    tags:
    *      - entities
    *    summary: Get all entities
-   *    description:
+   *    description: Get all entities, optionally from an array of IDs
    *    produces:
    *      - application/json
    *    parameters:
@@ -280,6 +280,8 @@ module.exports = (util, config) => {
    *        in: query
    *        required: false
    *        type: array
+   *        items:
+   *          type: string
    *      - name: children
    *        description: Get child entities
    *        in: query

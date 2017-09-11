@@ -3,6 +3,31 @@ const Taxonomy = require('ace-api/lib/taxonomy');
 
 module.exports = (util, config) => {
 
+  /**
+   * @swagger
+   * definitions:
+   *  Taxonomy:
+   *    type: object
+   *    properties:
+   *      title:
+   *        type: string
+   *      slug:
+   *        type: string
+   *      terms:
+   *        type: array
+   *        items:
+   *          type: object
+   *          properties:
+   *            id:
+   *              type: string
+   *            title:
+   *              type: string
+   *            slug:
+   *              type: string
+   *            terms:
+   *              type: array
+   */
+
   util.router.post('/taxonomy.:ext?',
     util.authMiddleware,
     util.permissionMiddleware.bind(null, 'taxonomyUpdate'),
@@ -37,29 +62,7 @@ module.exports = (util, config) => {
    *        description: Taxonomy
    *        schema:
    *          type: object
-   *          properties:
-   *            _id:
-   *              type: string
-   *            _rev:
-   *              type: string
-   *            title:
-   *              type: string
-   *            slug:
-   *              type: string
-   *            terms:
-   *              type: array
-   *              items:
-   *                schema:
-   *                  type: object
-   *                  properties:
-   *                    id:
-   *                      type: string
-   *                    title:
-   *                      type: string
-   *                    slug:
-   *                      type: string
-   *                    terms:
-   *                      type: array
+   *          $ref: '#/definitions/Taxonomy'
    */
   util.router.get('/taxonomy.:ext?',
     util.cacheMiddleware,
