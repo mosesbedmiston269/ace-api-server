@@ -1,6 +1,6 @@
 {
   "name": "ace-api-server",
-  "version": "0.2.13",
+  "version": "0.2.14",
   "description": "ACE API Server",
   "author": {
     "name": "Studio Thomas",
@@ -25,7 +25,7 @@
     "node": "8.x"
   },
   "dependencies": {
-    "ace-api": "^0.5.11",
+    "ace-api": "^0.5.12",
     "bluebird": "^3.5.0",
     "body-parser": "^1.18.0",
     "circular-json": "^0.3.3",
