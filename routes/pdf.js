@@ -52,7 +52,7 @@ module.exports = (util, config) => {
         res.status(200);
         res.send(`
           <body onload='form.submit()'>
-            <form id='form' method='POST' action='${config.assist.url}/${config.slug}/pdf/download' target='_self'>
+            <form id='form' method='POST' action='${config.assist.url}/${req.session.slug}/pdf/download' target='_self'>
               <input type='hidden' name='payload' value='${payload}' />
             </form>
           </body>
