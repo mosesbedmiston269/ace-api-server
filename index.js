@@ -116,7 +116,7 @@ function AceApiServer (app, serverConfig = {}, authMiddleware = null) {
 
   function cacheMiddleware (req, res, next) {
     if (config.cache.enabled) {
-      const key = `${req.session.slug}${config.apiPrefix ? req.url.replace(`/${config.apiPrefix}`, '') : req.url}`;
+      const key = `${req.session.slug}${req.url}`;
       const useCachedResponse = config.cache.enabled && cache.has(key) && req.session.role === 'guest'; // TODO: Replace 'guest' with constant
 
       if (useCachedResponse) {
@@ -172,7 +172,7 @@ function AceApiServer (app, serverConfig = {}, authMiddleware = null) {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET,PUT,POST,DELETE,OPTIONS',
       'Access-Control-Expose-Headers': 'X-Slug, X-Role, X-User-Id',
-      'Vary': 'X-Api-Token',
+      Vary: 'Accept-Encoding, X-Api-Token',
     };
 
     if (req.headers['access-control-request-headers']) {
