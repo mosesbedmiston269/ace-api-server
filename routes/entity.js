@@ -306,8 +306,10 @@ module.exports = (util, config) => {
     '/entities.:ext?',
     util.cacheMiddleware,
     (req, res) => {
-      let children = req.query.children !== undefined ? JSON.parse(req.query.children) : false;
-      let parents = req.query.parents !== undefined ? JSON.parse(req.query.parents) : false;
+      let children = (req.query.children || req.body.children) !== undefined
+        ? JSON.parse((req.query.children || req.body.children)) : false;
+      let parents = (req.query.parents || req.body.parents) !== undefined
+        ? JSON.parse((req.query.parents || req.body.parents)) : false;
 
       if (children === true) {
         children = 1;
@@ -321,8 +323,8 @@ module.exports = (util, config) => {
       if (keys) {
         req.query.keys = _.isArray(keys) ? keys : [keys];
       }
-      req.query.include_docs = true;
 
+      req.query.include_docs = true;
 
       const entity = new Entity(util.getConfig(config, req.session.slug));
 
