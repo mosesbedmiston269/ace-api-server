@@ -9,7 +9,7 @@ module.exports = {
       version: '0.0.0', // Version (required)
     },
     host: `localhost:${API_PORT}`,
-    basePath: '/api/latest',
+    basePath: '/',
     schemes: ['http', 'https'],
     securityDefinitions: {
       ApiToken: {
