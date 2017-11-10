@@ -14,6 +14,11 @@ module.exports = (util, config) => {
    *    produces:
    *      - text/html
    *    parameters:
+   *      - name: slug
+   *        description: Slug (parent folder name of the template)
+   *        in: query
+   *        required: false
+   *        type: string
    *      - name: templateSlug
    *        description: Template slug (folder name of the template)
    *        in: query
@@ -42,15 +47,17 @@ module.exports = (util, config) => {
       skipValidation: input.skipValidation ? JSON.parse(input.skipValidation) : false,
     };
 
+    const slug = req.session.slug || input.slug;
+
     function renderTemplate(data = {}) {
       if (options.data) {
         util.sendResponse(res, data);
         return;
       }
 
-      const email = new Email(util.getConfig(config, req.session.slug));
+      const email = new Email(util.getConfig(config, slug));
 
-      email.getTemplate(`${req.session.slug}/${input.templateSlug}`, data, options)
+      email.getTemplate(`${slug}/${input.templateSlug}`, data, options)
         .then((template) => {
           util.sendResponse(res, template.html);
         }, util.handleError.bind(null, res));
@@ -62,7 +69,7 @@ module.exports = (util, config) => {
     }
 
     if (input.entityId) {
-      const entity = new Entity(util.getConfig(config, req.session.slug));
+      const entity = new Entity(util.getConfig(config, slug));
 
       entity.entitiesById([input.entityId], true, false, true)
         .then((entities) => {

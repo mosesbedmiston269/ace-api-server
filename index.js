@@ -24,7 +24,10 @@ function AceApiServer (app, serverConfig = {}, authMiddleware = null) {
   // Allowed development routes
 
   function isAllowedDevRoute (req) {
-    const allowedRoutes = ['/token'];
+    const allowedRoutes = [
+      '/token',
+      '/email/template',
+    ];
     return config.environment === 'development' && allowedRoutes.indexOf(req.path) > -1;
   }
 
