@@ -42,8 +42,10 @@ module.exports = (util, config) => {
     const input = Object.keys(req.body).length ? req.body : req.query || {};
 
     const options = {
-      preview: input.preview ? JSON.parse(input.preview) : false,
       data: input.data ? JSON.parse(input.data) : false,
+      preview: input.preview ? JSON.parse(input.preview) : false,
+      inky: input.inky ? JSON.parse(input.inky) : false,
+      mjml: input.mjml ? JSON.parse(input.mjml) : false,
       skipValidation: input.skipValidation ? JSON.parse(input.skipValidation) : false,
     };
 
