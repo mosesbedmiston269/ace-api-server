@@ -20,11 +20,17 @@ module.exports = (util, config) => {
       return;
     }
 
-    const itemsCount = util.cache.keys().length;
+    const items = [];
 
-    util.cache.reset();
+    util.cache.forEach((value, key) => {
+      if (key.indexOf(req.session.slug) === 0) {
+        items.push(key);
+      }
+    });
 
-    util.sendResponse(res, `Successfully cleared ${itemsCount} items from the cache`);
+    items.forEach(key => util.cache.del(key));
+
+    util.sendResponse(res, `${items.length} items removed from cache`);
   });
 
 };
