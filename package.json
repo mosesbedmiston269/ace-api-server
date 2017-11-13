@@ -26,22 +26,22 @@
     "node": "8.x"
   },
   "dependencies": {
-    "ace-api": "^0.5.16",
+    "ace-api": "^0.5.17",
     "bluebird": "^3.5.1",
     "body-parser": "^1.18.2",
-    "circular-json": "^0.3.3",
+    "circular-json": "^0.4.0",
     "clarify": "^2.0.0",
-    "connect-multiparty": "^2.0.0",
+    "connect-multiparty": "^2.1.0",
     "cookie-parser": "^1.4.3",
     "deep-freeze": "0.0.1",
     "errorhandler": "^1.5.0",
-    "express": "^4.16.1",
+    "express": "^4.16.2",
     "express-session": "^1.15.6",
     "express-useragent": "^1.0.8",
     "forever": "^0.15.3",
     "formidable": "^1.1.1",
     "heapdump": "^0.3.9",
-    "helmet": "^3.8.2",
+    "helmet": "^3.9.0",
     "le_node": "^1.7.1",
     "lodash": "^4.17.4",
     "lru-cache": "^4.1.1",
@@ -53,15 +53,15 @@
   },
   "devDependencies": {
     "dotenv": "^4.0.0",
-    "eslint": "^4.8.0",
-    "eslint-config-airbnb": "^15.1.0",
-    "eslint-config-airbnb-base": "^12.0.1",
-    "eslint-plugin-import": "^2.7.0",
+    "eslint": "^4.11.0",
+    "eslint-config-airbnb": "^16.1.0",
+    "eslint-config-airbnb-base": "^12.1.0",
+    "eslint-plugin-import": "^2.8.0",
     "gulp": "^3.9.1",
     "gulp-livereload": "^3.8.1",
     "opn": "^5.1.0",
     "serve-static": "^1.13.1",
     "swagger-jsdoc": "^1.9.7",
-    "swagger-ui-dist": "^3.3.1"
+    "swagger-ui-dist": "^3.4.4"
   }
 }
