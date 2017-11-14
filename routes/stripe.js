@@ -1,5 +1,7 @@
 const Auth = require('ace-api/lib/auth');
 const Stripe = require('ace-api/lib/stripe');
+const Email = require('ace-api/lib/email');
+const Ecommerce = require('ace-api/lib/ecommerce');
 
 module.exports = (util, config) => {
 
@@ -29,5 +31,27 @@ module.exports = (util, config) => {
     stripe.retrieveAccount()
       .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
   });
+
+  util.router.get(
+    '/stripe/email.:ext?',
+    util.asyncMiddleware(async (req, res) => {
+      const email = new Email(util.getConfig(config, req.session.slug));
+      const stripe = new Stripe(util.getConfig(config, req.session.slug));
+      const ecommerce = new Ecommerce(util.getConfig(config, req.session.slug));
+
+      const settings = (await stripe.getSettings());
+      const order = (await ecommerce.getOrder(req.query.orderId));
+
+      const data = {
+        settings,
+        order,
+      };
+
+      email.getTemplate(`${req.session.slug}/${req.query.template}`, data)
+        .then((template) => {
+          util.sendResponse(res, template.html);
+        }, util.handleError.bind(null, res));
+    })
+  );
 
 };
