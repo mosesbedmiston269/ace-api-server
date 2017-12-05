@@ -1,30 +1,39 @@
-const ClientConfig = require('ace-api/lib/client-config');
+module.exports = ({
+  ClientConfig,
+  router,
+  authMiddleware,
+  permissionMiddleware,
+  asyncMiddleware,
+  getConfig,
+  handleResponse,
+  handleError,
+}) => {
 
-module.exports = (util, config) => {
-
-  util.router.get('/config.:ext?',
-    util.authMiddleware,
-    util.asyncMiddleware(async (req, res) => {
-      const clientConfig = new ClientConfig(util.getConfig(config, req.session.slug));
+  router.get(
+    '/config.:ext?',
+    authMiddleware,
+    asyncMiddleware(async (req, res) => {
+      const clientConfig = new ClientConfig(await getConfig(req.session.slug));
 
       try {
-        util.sendResponse(res, await clientConfig.get());
+        handleResponse(req, res, await clientConfig.get());
       } catch (error) {
-        util.handleError(res, error);
+        handleError(req, res, error);
       }
     })
   );
 
-  util.router.post('/config.:ext?',
-    util.authMiddleware,
-    util.permissionMiddleware.bind(null, 'config'),
-    util.asyncMiddleware(async (req, res) => {
-      const clientConfig = new ClientConfig(util.getConfig(config, req.session.slug));
+  router.post(
+    '/config.:ext?',
+    authMiddleware,
+    permissionMiddleware.bind(null, 'config'),
+    asyncMiddleware(async (req, res) => {
+      const clientConfig = new ClientConfig(await getConfig(req.session.slug));
 
       try {
-        util.sendResponse(res, await clientConfig.set(req.body.config));
+        handleResponse(req, res, await clientConfig.set(req.body.config));
       } catch (error) {
-        util.handleError(res, error);
+        handleError(req, res, error);
       }
     })
   );

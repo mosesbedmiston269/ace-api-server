@@ -1,4 +1,5 @@
 const PORT = process.env.PORT || 5000;
+const HOST = process.env.HOST || 'localhost';
 const SESSION_SECRET = process.env.SESSION_SECRET;
 
 const express = require('express');
@@ -40,7 +41,7 @@ function Serve (config = {}) {
 
   const server = http.createServer(app);
   server.on('listening', () => {
-    console.log(`Express server listening on port ${PORT}`);
+    console.log(`http://${HOST}:${PORT}`);
   });
   server.listen(PORT);
 }

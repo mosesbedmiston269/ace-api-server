@@ -2,74 +2,102 @@ const Promise = require('bluebird');
 const fs = Promise.promisifyAll(require('fs'));
 const formidable = require('formidable');
 
-const Transcode = require('ace-api/lib/transcode');
+module.exports = ({
+  Transcode,
+  router,
+  authMiddleware,
+  asyncMiddleware,
+  getConfig,
+  handleResponse,
+  handleError,
+}) => {
 
-module.exports = (util, config) => {
-  const transcode = new Transcode(config);
   const uploads = {};
 
-  util.router.get('/transcode/job.:ext?', util.authMiddleware, (req, res) => {
-    transcode.getJob(req.query.id)
-      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
-  });
+  router.get(
+    '/transcode/job.:ext?',
+    authMiddleware,
+    asyncMiddleware(async (req, res) => {
+      const transcode = new Transcode(await getConfig());
 
-  util.router.options('/transcode/upload.:ext?', (req, res) => {
-    res.set({
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET,PUT,POST,DELETE,OPTIONS',
-      'Access-Control-Allow-Headers': '*',
-    });
-
-    res.status(200).end();
-  });
-
-  util.router.post('/transcode/upload.:ext?', (req, res) => {
-    const options = JSON.parse(req.headers['upload-options']);
-
-    const form = new formidable.IncomingForm();
-
-    form.uploadDir = '/tmp';
-
-    form.parse(req, (err, fields, files) => {
-      const file = files.file;
-      const name = fields.name;
-      const chunk = parseInt(fields.chunk, 10);
-      const chunks = parseInt(fields.chunks, 10);
-
-      if (!uploads[name]) {
-        uploads[name] = {
-          originalFileName: req.headers['file-name'],
-          path: [],
-          data: [],
-        };
+      try {
+        handleResponse(req, res, await transcode.getJob(req.query.id));
+      } catch (error) {
+        handleError(req, res, error);
       }
+    })
+  );
 
-      uploads[name].path.push(file.path);
+  router.options(
+    '/transcode/upload.:ext?',
+    (req, res) => {
+      res.set({
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET,PUT,POST,DELETE,OPTIONS',
+        'Access-Control-Allow-Headers': '*',
+      });
 
-      fs.readFileAsync(file.path).then((fileData) => {
-        uploads[name].data.push(fileData);
+      res.status(200).end();
+    }
+  );
 
-        if (chunk < chunks - 1) {
-          res.status(200).send({
-            jsonrpc: '2.0',
-            id: name,
-          });
+  router.post(
+    '/transcode/upload.:ext?',
+    asyncMiddleware(async (req, res) => {
+      const options = JSON.parse(req.headers['upload-options']);
+
+      const transcode = new Transcode(await getConfig());
+
+      const form = new formidable.IncomingForm();
+
+      form.uploadDir = '/tmp';
+
+      form.parse(req, async (err, fields, files) => {
+        const file = files.file;
+        const name = fields.name;
+        const chunk = parseInt(fields.chunk, 10);
+        const chunks = parseInt(fields.chunks, 10);
+
+        if (!uploads[name]) {
+          uploads[name] = {
+            originalFileName: req.headers['file-name'],
+            path: [],
+            data: [],
+          };
         }
 
-        if (chunk === chunks - 1) {
-          transcode.uploadToS3(Buffer.concat(uploads[name].data), {
-            slug: options.slug,
-            fileName: uploads[name].originalFileName,
-          })
-            .then((info) => {
-              Promise.all(uploads[name].path.map(path => fs.unlinkAsync(path))).then(() => {
-                delete uploads[name];
-                util.sendResponse(res, info);
-              }, util.handleError.bind(null, res));
-            }, util.handleError.bind(null, res));
+        uploads[name].path.push(file.path);
+
+        try {
+          const fileData = await fs.readFileAsync(file.path);
+
+          uploads[name].data.push(fileData);
+
+          if (chunk < chunks - 1) {
+            res.status(200).send({
+              jsonrpc: '2.0',
+              id: name,
+            });
+          }
+
+          if (chunk === chunks - 1) {
+            const info = await transcode.uploadToS3(Buffer.concat(uploads[name].data), {
+              slug: options.slug,
+              fileName: uploads[name].originalFileName,
+            });
+
+            await Promise.all(uploads[name].path.map(path => fs.unlinkAsync(path)));
+
+            delete uploads[name];
+
+            handleResponse(req, res, info);
+          }
+
+        } catch (error) {
+          handleError(req, res, error);
         }
       });
-    });
-  });
+    })
+  );
 
 };

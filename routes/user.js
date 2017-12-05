@@ -1,59 +1,70 @@
-const User = require('ace-api/lib/user');
+module.exports = ({
+  User,
+  router,
+  authMiddleware,
+  permissionMiddleware,
+  asyncMiddleware,
+  getConfig,
+  handleResponse,
+  handleError,
+}) => {
 
-module.exports = (util, config) => {
-
-  util.router.post('/user.:ext?',
-    util.authMiddleware,
-    util.permissionMiddleware.bind(null, 'user'),
-    util.asyncMiddleware(async (req, res) => {
-      const user = new User(util.getConfig(config, req.session.slug));
+  router.post(
+    '/user.:ext?',
+    authMiddleware,
+    permissionMiddleware.bind(null, 'user'),
+    asyncMiddleware(async (req, res) => {
+      const user = new User(await getConfig(req.session.slug));
 
       try {
-        util.sendResponse(res, await user.create(req.body.user));
+        handleResponse(req, res, await user.create(req.body.user));
       } catch (error) {
-        util.handleError(res, error);
+        handleError(req, res, error);
       }
     })
   );
 
-  util.router.get('/user.:ext?',
-    util.authMiddleware,
-    util.permissionMiddleware.bind(null, 'user'),
-    util.asyncMiddleware(async (req, res) => {
-      const user = new User(util.getConfig(config, req.session.slug));
+  router.get(
+    '/user.:ext?',
+    authMiddleware,
+    permissionMiddleware.bind(null, 'user'),
+    asyncMiddleware(async (req, res) => {
+      const user = new User(await getConfig(req.session.slug));
 
       try {
-        util.sendResponse(res, await user.read(req.query.userId));
+        handleResponse(req, res, await user.read(req.query.userId));
       } catch (error) {
-        util.handleError(res, error);
+        handleError(req, res, error);
       }
     })
   );
 
-  util.router.put('/user.:ext?',
-    util.authMiddleware,
-    util.permissionMiddleware.bind(null, 'user'),
-    util.asyncMiddleware(async (req, res) => {
-      const user = new User(util.getConfig(config, req.session.slug));
+  router.put(
+    '/user.:ext?',
+    authMiddleware,
+    permissionMiddleware.bind(null, 'user'),
+    asyncMiddleware(async (req, res) => {
+      const user = new User(await getConfig(req.session.slug));
 
       try {
-        util.sendResponse(res, await user.update(req.body.user));
+        handleResponse(req, res, await user.update(req.body.user));
       } catch (error) {
-        util.handleError(res, error);
+        handleError(req, res, error);
       }
     })
   );
 
-  util.router.delete('/user.:ext?',
-    util.authMiddleware,
-    util.permissionMiddleware.bind(null, 'user'),
-    util.asyncMiddleware(async (req, res) => {
-      const user = new User(util.getConfig(config, req.session.slug));
+  router.delete(
+    '/user.:ext?',
+    authMiddleware,
+    permissionMiddleware.bind(null, 'user'),
+    asyncMiddleware(async (req, res) => {
+      const user = new User(await getConfig(req.session.slug));
 
       try {
-        util.sendResponse(res, await user.delete(req.body.userId || req.body.userIds || req.query.userId || req.query.userIds));
+        handleResponse(req, res, await user.delete(req.body.userId || req.body.userIds || req.query.userId || req.query.userIds));
       } catch (error) {
-        util.handleError(res, error);
+        handleError(req, res, error);
       }
     })
   );

@@ -1,80 +1,110 @@
-const Auth = require('ace-api/lib/auth');
-const File = require('ace-api/lib/file');
-const S3 = require('ace-api/lib/s3');
+module.exports = ({
+  File,
+  S3,
+  router,
+  authMiddleware,
+  permissionMiddleware,
+  asyncMiddleware,
+  getConfig,
+  handleResponse,
+  handleError,
+}) => {
 
-module.exports = (util, config) => {
+  router.get(
+    '/file/search.:ext?',
+    authMiddleware,
+    permissionMiddleware.bind(null, 'fileRead'),
+    asyncMiddleware(async (req, res) => {
+      const file = new File(await getConfig(req.session.slug));
 
-  util.router.get('/file/search.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'fileRead'), (req, res) => {
-    const file = new File(util.getConfig(config, req.session.slug));
+      try {
+        handleResponse(req, res, await file.search(req.query));
+      } catch (error) {
+        handleError(req, res, error);
+      }
+    })
+  );
 
-    file.search(req.query)
-      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
-  });
+  router.post(
+    '/file.:ext?',
+    authMiddleware,
+    permissionMiddleware.bind(null, 'fileCreate'),
+    asyncMiddleware(async (req, res) => {
+      const file = new File(await getConfig(req.session.slug));
 
-  util.router.post('/file.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'fileCreate'), (req, res) => {
-    const file = new File(util.getConfig(config, req.session.slug));
+      try {
+        handleResponse(req, res, await file.create(req.body.file));
+      } catch (error) {
+        handleError(req, res, error);
+      }
+    })
+  );
 
-    file.create(req.body.file)
-      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
-  });
+  router.delete(
+    '/file.:ext?',
+    authMiddleware,
+    permissionMiddleware.bind(null, 'fileDelete'),
+    asyncMiddleware(async (req, res) => {
+      const file = new File(await getConfig(req.session.slug));
 
-  util.router.delete('/file.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'fileDelete'), (req, res) => {
-    const file = new File(util.getConfig(config, req.session.slug));
+      try {
+        handleResponse(req, res, await file.delete(req.body.file || req.body.files, req.session.slug));
+      } catch (error) {
+        handleError(req, res, error);
+      }
+    })
+  );
 
-    file.delete(req.body.file || req.body.files, req.session.slug)
-      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
-  });
+  router.delete(
+    '/file/trashed.:ext?',
+    authMiddleware,
+    permissionMiddleware.bind(null, 'fileDelete'),
+    asyncMiddleware(async (req, res) => {
+      const file = new File(await getConfig(req.session.slug));
 
-  util.router.delete('/file/trashed.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'fileDelete'), (req, res) => {
-    const file = new File(util.getConfig(config, req.session.slug));
+      try {
+        handleResponse(req, res, await file.delete('trashed', req.session.slug));
+      } catch (error) {
+        handleError(req, res, error);
+      }
+    })
+  );
 
-    file.delete('trashed', req.session.slug)
-      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
-  });
+  router.get(
+    '/file/download/s3.:ext?',
+    asyncMiddleware(async (req, res) => {
+      const s3 = new S3(await getConfig());
 
-  util.router.get('/file/download/s3.:ext?', (req, res) => {
-    const s3 = new S3(config);
+      s3.getSignedUrl(req.query.bucket, req.query.key, req.query.filename)
+        .then((url) => {
+          res.status(200);
 
-    s3.getSignedUrl(req.query.bucket, req.query.key, req.query.filename)
-      .then((url) => {
-        res.status(200);
+          if (req.query.redirect && !JSON.parse(req.query.redirect)) {
+            res.send(url);
+            return;
+          }
 
-        if (req.query.redirect && !JSON.parse(req.query.redirect)) {
-          res.send(url);
-          return;
-        }
+          res.redirect(url);
+        }, handleError.bind(null, req, res));
+    })
+  );
 
-        res.redirect(url);
-      }, util.handleError.bind(null, res));
-  });
+  router.get(
+    '/file/s3/:bucket/:slug/:key/:filename',
+    asyncMiddleware(async (req, res) => {
+      const s3 = new S3(await getConfig());
 
-  // util.router.all('/file/s3/:filename', (req, res) => {
-  //   const s3 = new S3(config);
+      s3.getObject(req.params.bucket, `${req.params.slug}/${req.params.key}`)
+        .then((result) => {
+          res.status(200);
+          res.type(req.params.filename.split('.').splice(-1)[0]);
 
-  //   s3.getObject(req.query.bucket, req.query.key)
-  //     .then((result) => {
-  //       res.type(req.params.filename.split('.').splice(-1)[0]);
+          if (req.query.download && JSON.parse(req.query.download)) {
+            res.attachment(req.params.filename);
+          }
 
-  //       if (req.query.download && JSON.parse(req.query.download)) {
-  //         res.attachment(req.params.filename);
-  //       }
-
-  //       res.send(result.Body);
-  //     }, util.handleError.bind(null, res));
-  // });
-
-  util.router.all('/file/s3/:bucket/:slug/:key/:filename', (req, res) => {
-    const s3 = new S3(config);
-
-    s3.getObject(req.params.bucket, `${req.params.slug}/${req.params.key}`)
-      .then((result) => {
-        res.type(req.params.filename.split('.').splice(-1)[0]);
-
-        if (req.query.download && JSON.parse(req.query.download)) {
-          res.attachment(req.params.filename);
-        }
-
-        res.send(result.Body);
-      }, util.handleError.bind(null, res));
-  });
+          res.send(result.Body);
+        }, handleError.bind(null, req, res));
+    })
+  );
 };

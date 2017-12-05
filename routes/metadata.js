@@ -1,6 +1,12 @@
-const ClientConfig = require('ace-api/lib/client-config');
-
-module.exports = (util, config) => {
+module.exports = ({
+  ClientConfig,
+  router,
+  cacheMiddleware,
+  asyncMiddleware,
+  getConfig,
+  handleResponse,
+  handleError,
+}) => {
 
   /**
    * @swagger
@@ -21,18 +27,18 @@ module.exports = (util, config) => {
    *            description:
    *              type: string
    */
-  util.router.get(
+  router.get(
     '/metadata.:ext?',
-    util.cacheMiddleware,
-    util.asyncMiddleware(async (req, res) => {
-      const cc = new ClientConfig(util.getConfig(config, req.session.slug));
+    cacheMiddleware,
+    asyncMiddleware(async (req, res) => {
+      const cc = new ClientConfig(await getConfig(req.session.slug));
 
       const clientConfig = await cc.get();
 
       try {
-        util.cacheAndSendResponse(req, res, clientConfig.client.metadata);
+        handleResponse(req, res, clientConfig.client.metadata);
       } catch (error) {
-        util.handleError(res, error);
+        handleError(req, res, error);
       }
     })
   );

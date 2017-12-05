@@ -1,7 +1,12 @@
-const Email = require('ace-api/lib/email');
-const Entity = require('ace-api/lib/entity');
-
-module.exports = (util, config) => {
+module.exports = ({
+  Email,
+  Entity,
+  router,
+  asyncMiddleware,
+  getConfig,
+  handleResponse,
+  handleError,
+}) => {
 
   /**
    * @swagger
@@ -38,61 +43,73 @@ module.exports = (util, config) => {
    *      200:
    *        description: Template
    */
-  util.router.all('/email/template.:ext?', (req, res) => {
-    const input = Object.keys(req.body).length ? req.body : req.query || {};
+  router.all(
+    '/email/template.:ext?',
+    asyncMiddleware(async (req, res) => {
+      const input = Object.keys(req.body).length ? req.body : req.query || {};
 
-    const options = {
-      data: input.data ? JSON.parse(input.data) : false,
-      preview: input.preview ? JSON.parse(input.preview) : false,
-      inky: input.inky ? JSON.parse(input.inky) : false,
-      mjml: input.mjml ? JSON.parse(input.mjml) : false,
-      skipValidation: input.skipValidation ? JSON.parse(input.skipValidation) : false,
-    };
+      const options = {
+        data: input.data ? JSON.parse(input.data) : false,
+        preview: input.preview ? JSON.parse(input.preview) : false,
+        inky: input.inky ? JSON.parse(input.inky) : false,
+        mjml: input.mjml ? JSON.parse(input.mjml) : false,
+        skipValidation: input.skipValidation ? JSON.parse(input.skipValidation) : false,
+      };
 
-    const slug = req.session.slug || input.slug;
+      const slug = req.session.slug || input.slug;
 
-    function renderTemplate(data = {}) {
-      if (options.data) {
-        util.sendResponse(res, data);
+      async function renderTemplate(data = {}) {
+        if (options.data) {
+          handleResponse(req, res, data);
+          return;
+        }
+
+        const email = new Email(await getConfig(slug));
+
+        const template = await email.getTemplate(`${slug}/${input.templateSlug}`, data, options);
+
+        try {
+          handleResponse(req, res, template.html);
+        } catch (error) {
+          handleError(req, res, error);
+        }
+      }
+
+      if (input.payload) {
+        renderTemplate(JSON.parse(input.payload));
         return;
       }
 
-      const email = new Email(util.getConfig(config, slug));
+      if (input.entityId) {
+        const entity = new Entity(await getConfig(slug));
 
-      email.getTemplate(`${slug}/${input.templateSlug}`, data, options)
-        .then((template) => {
-          util.sendResponse(res, template.html);
-        }, util.handleError.bind(null, res));
-    }
+        entity.entitiesById([input.entityId], true, false, true)
+          .then((entities) => {
+            entities = Entity.flattenValues(entities);
 
-    if (input.payload) {
-      renderTemplate(JSON.parse(input.payload));
-      return;
-    }
+            renderTemplate(entities[0]);
+          });
 
-    if (input.entityId) {
-      const entity = new Entity(util.getConfig(config, slug));
+        return;
+      }
 
-      entity.entitiesById([input.entityId], true, false, true)
-        .then((entities) => {
-          entities = Entity.flattenValues(entities);
-
-          renderTemplate(entities[0]);
-        });
-
-      return;
-    }
-
-    renderTemplate();
-  });
-
-  util.router.post('/email/subscribe.:ext?', (req, res) => {
-    const email = new Email(util.getConfig(config, req.session.slug));
-
-    email.subscribe({
-      email: req.body.email || req.query.email,
-      name: req.body.name || req.query.name || '',
+      renderTemplate();
     })
-      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
-  });
+  );
+
+  router.post(
+    '/email/subscribe.:ext?',
+    asyncMiddleware(async (req, res) => {
+      const email = new Email(await getConfig(req.session.slug));
+
+      try {
+        handleResponse(req, res, await email.subscribe({
+          email: req.body.email || req.query.email,
+          name: req.body.name || req.query.name || '',
+        }));
+      } catch (error) {
+        handleError(req, res, error);
+      }
+    })
+  );
 };

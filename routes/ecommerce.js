@@ -1,61 +1,101 @@
 const _ = require('lodash');
-const Auth = require('ace-api/lib/auth');
-const Ecommerce = require('ace-api/lib/ecommerce');
 
-module.exports = (util, config) => {
+module.exports = ({
+  Ecommerce,
+  router,
+  authMiddleware,
+  permissionMiddleware,
+  asyncMiddleware,
+  getConfig,
+  handleResponse,
+  handleError,
+}) => {
 
-  util.router.get('/ecommerce/order/message/:message.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'ecommerce'), (req, res) => {
-    const ecommerce = new Ecommerce(util.getConfig(config, req.session.slug));
+  router.get(
+    '/ecommerce/order/message/:message.:ext?',
+    authMiddleware,
+    permissionMiddleware.bind(null, 'ecommerce'),
+    asyncMiddleware(async (req, res) => {
+      const ecommerce = new Ecommerce(await getConfig(req.session.slug));
 
-    ecommerce.getOrder(req.query.orderId)
-      .then((order) => {
-        try {
-          res.status(200).send(order.messages[req.params.message].email.html);
-        } catch (error) {
-          util.handleError(res, error);
-        }
-      }, util.handleError.bind(null, res));
-  });
+      try {
+        const order = await ecommerce.getOrder(req.query.orderId);
+        handleResponse(req, res, order.messages[req.params.message].email.html);
+      } catch (error) {
+        handleError(req, res, error);
+      }
+    })
+  );
 
-  util.router.get('/ecommerce/:type.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'ecommerce'), (req, res) => {
-    if (_.isArray(req.query.sort)) {
-      req.query.sort = JSON.stringify(req.query.sort).replace(/\\"/g, '');
-    }
+  router.get(
+    '/ecommerce/:type.:ext?',
+    authMiddleware,
+    permissionMiddleware.bind(null, 'ecommerce'),
+    asyncMiddleware(async (req, res) => {
+      if (_.isArray(req.query.sort)) {
+        req.query.sort = JSON.stringify(req.query.sort).replace(/\\"/g, '');
+      }
 
-    const ecommerce = new Ecommerce(util.getConfig(config, req.session.slug));
+      const ecommerce = new Ecommerce(await getConfig(req.session.slug));
 
-    ecommerce.getType(req.params.type, req.query)
-      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
-  });
+      try {
+        handleResponse(req, res, await ecommerce.getType(req.params.type, req.query));
+      } catch (error) {
+        handleError(req, res, error);
+      }
+    })
+  );
 
-  util.router.post('/ecommerce/:type.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'ecommerce'), (req, res) => {
-    if (!/discount|order/.test(req.params.type)) {
-      util.handleError(res, `Illegal type: ${req.params.type}`);
-      return;
-    }
+  router.post(
+    '/ecommerce/:type.:ext?',
+    authMiddleware,
+    permissionMiddleware.bind(null, 'ecommerce'),
+    asyncMiddleware(async (req, res) => {
+      if (!/^(discount|order)$/.test(req.params.type)) {
+        handleError(req, res, `Illegal type: ${req.params.type}`);
+        return;
+      }
 
-    const ecommerce = new Ecommerce(util.getConfig(config, req.session.slug));
+      const ecommerce = new Ecommerce(await getConfig(req.session.slug));
 
-    ecommerce.setType(req.params.type, req.body.item)
-      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
-  });
+      try {
+        handleResponse(req, res, await ecommerce.setType(req.params.type, req.body.item));
+      } catch (error) {
+        handleError(req, res, error);
+      }
+    })
+  );
 
-  util.router.delete('/ecommerce/:type.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'ecommerce'), (req, res) => {
-    if (!/discount/.test(req.params.type)) {
-      util.handleError(res, `Illegal type: ${req.params.type}`);
-      return;
-    }
+  router.delete(
+    '/ecommerce/:type.:ext?',
+    authMiddleware,
+    permissionMiddleware.bind(null, 'ecommerce'),
+    asyncMiddleware(async (req, res) => {
+      if (!/^(discount)$/.test(req.params.type)) {
+        handleError(req, res, `Illegal type: ${req.params.type}`);
+        return;
+      }
 
-    const ecommerce = new Ecommerce(util.getConfig(config, req.session.slug));
+      const ecommerce = new Ecommerce(await getConfig(req.session.slug));
 
-    ecommerce.deleteType(req.body.item)
-      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
-  });
+      try {
+        handleResponse(req, res, await ecommerce.deleteType(req.body.item));
+      } catch (error) {
+        handleError(req, res, error);
+      }
+    })
+  );
 
-  util.router.get('/ecommerce/discount/:code.:ext?', (req, res) => {
-    const ecommerce = new Ecommerce(util.getConfig(config, req.session.slug));
+  router.get(
+    '/ecommerce/discount/:code.:ext?',
+    asyncMiddleware(async (req, res) => {
+      const ecommerce = new Ecommerce(await getConfig(req.session.slug));
 
-    ecommerce.verifyDiscount(req.params.code)
-      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
-  });
+      try {
+        handleResponse(req, res, await ecommerce.verifyDiscount(req.params.code));
+      } catch (error) {
+        handleError(req, res, error);
+      }
+    })
+  );
 };

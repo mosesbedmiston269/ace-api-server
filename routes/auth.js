@@ -1,12 +1,21 @@
-const Auth = require('ace-api/lib/auth');
+module.exports = ({
+  Auth,
+  router,
+  authMiddleware,
+  permissionMiddleware,
+  asyncMiddleware,
+  getConfig,
+  handleResponse,
+  handleError,
+}) => {
 
-module.exports = (util, config) => {
-
-  util.router.get(
+  router.get(
     '/auth/:provider/config.:ext?',
-    util.authMiddleware,
-    Auth.requirePermission.bind(null, 'settings'),
-    (req, res) => {
+    authMiddleware,
+    permissionMiddleware.bind(null, 'settings'),
+    asyncMiddleware(async (req, res) => {
+      const config = await getConfig();
+
       if (!config[req.params.provider]) {
         res.status(404);
         res.send({});
@@ -15,29 +24,32 @@ module.exports = (util, config) => {
 
       res.status(200);
       res.send({ clientId: config[req.params.provider].clientId });
-    }
+    })
   );
 
-  util.router.get(
+  router.get(
     '/auth/:provider.:ext?',
-    util.authMiddleware,
-    Auth.requirePermission.bind(null, 'settings'),
+    authMiddleware,
+    permissionMiddleware.bind(null, 'settings'),
     (req, res) => {
       res.status(req.query.error ? 500 : 200);
       res.send(`${req.params.provider}: ${(req.query.error_description ? req.query.error_description : 'successfully authenticated')}`);
     }
   );
 
-  util.router.post(
+  router.post(
     '/auth/:provider.:ext?',
-    util.authMiddleware,
-    Auth.requirePermission.bind(null, 'settings'),
-    (req, res) => {
-      const auth = new Auth(util.getConfig(config, req.session.slug));
+    authMiddleware,
+    permissionMiddleware.bind(null, 'settings'),
+    asyncMiddleware(async (req, res) => {
+      const auth = new Auth(await getConfig(req.session.slug));
 
-      auth.authenticateWithProvider(req.params.provider, req.body)
-        .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
-    }
+      try {
+        handleResponse(req, res, await auth.authenticateWithProvider(req.params.provider, req.body));
+      } catch (error) {
+        handleError(req, res, error);
+      }
+    })
   );
 
 };

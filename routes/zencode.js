@@ -1,12 +1,25 @@
-const Zencode = require('ace-api/lib/zencode');
+module.exports = ({
+  Zencode,
+  router,
+  authMiddleware,
+  asyncMiddleware,
+  getConfig,
+  handleResponse,
+  handleError,
+}) => {
 
-module.exports = (util, config) => {
+  router.get(
+    '/zencode/job.:ext?',
+    authMiddleware,
+    asyncMiddleware(async (req, res) => {
+      const zencode = new Zencode(await getConfig(req.session.slug));
 
-  util.router.get('/zencode/job.:ext?', util.authMiddleware, (req, res) => {
-    const zencode = new Zencode(util.getConfig(config, req.session.slug));
-
-    zencode.getJob(req.query.id)
-      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
-  });
+      try {
+        handleResponse(req, res, await zencode.getJob(req.query.id));
+      } catch (error) {
+        handleError(req, res, error);
+      }
+    })
+  );
 
 };

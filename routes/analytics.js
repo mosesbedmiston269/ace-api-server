@@ -1,10 +1,26 @@
-const Analytics = require('ace-api/lib/analytics');
+module.exports = ({
+  Analytics,
+  router,
+  authMiddleware,
+  cacheMiddleware,
+  asyncMiddleware,
+  getConfig,
+  handleResponse,
+  handleError,
+}) => {
 
-module.exports = (util, config) => {
-  const analytics = new Analytics(config);
+  router.get(
+    '/analytics.:ext?',
+    authMiddleware,
+    cacheMiddleware,
+    asyncMiddleware(async (req, res) => {
+      const analytics = new Analytics(await getConfig());
 
-  util.router.get('/analytics.:ext?', util.authMiddleware, util.cacheMiddleware, (req, res) => {
-    analytics.get(req.query)
-      .then(util.cacheAndSendResponse.bind(null, req, res), util.handleError.bind(null, res));
-  });
+      try {
+        handleResponse(req, res, await analytics.get(req.query), true);
+      } catch (error) {
+        handleError(req, res, error);
+      }
+    })
+  );
 };

@@ -1,9 +1,17 @@
 const _ = require('lodash');
-const Auth = require('ace-api/lib/auth');
-const Entity = require('ace-api/lib/entity');
-const Db = require('ace-api/lib/db');
 
-module.exports = (util, config) => {
+module.exports = ({
+  Db,
+  Entity,
+  router,
+  authMiddleware,
+  permissionMiddleware,
+  cacheMiddleware,
+  asyncMiddleware,
+  getConfig,
+  handleResponse,
+  handleError,
+}) => {
 
   /**
    * @swagger
@@ -49,10 +57,16 @@ module.exports = (util, config) => {
    *      200:
    *        description: Indexes
    */
-  util.router.get('/entities/index.:ext?', (req, res) => {
-    Db.connect(util.getConfig(config, req.session.slug)).indexAsync()
-      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
-  });
+  router.get(
+    '/entities/index.:ext?',
+    asyncMiddleware(async (req, res) => {
+      try {
+        handleResponse(req, res, await Db.connect(await getConfig(req.session.slug)).indexAsync());
+      } catch (error) {
+        handleError(req, res, error);
+      }
+    })
+  );
 
   /**
    * @swagger
@@ -135,45 +149,52 @@ module.exports = (util, config) => {
    *              items:
    *                $ref: '#/definitions/Entity'
    */
-  util.router.get('/entities/search?.:ext?', util.cacheMiddleware, (req, res) => {
-    let children = req.query.children !== undefined ? JSON.parse(req.query.children) : false;
-    let parents = req.query.parents !== undefined ? JSON.parse(req.query.parents) : false;
-    const trashed = req.query.trashed !== undefined ? JSON.parse(req.query.trashed) : false;
-    const query = [];
+  router.get(
+    '/entities/search?.:ext?',
+    cacheMiddleware,
+    asyncMiddleware(async (req, res) => {
+      let children = req.query.children !== undefined ? JSON.parse(req.query.children) : false;
+      let parents = req.query.parents !== undefined ? JSON.parse(req.query.parents) : false;
+      const trashed = req.query.trashed !== undefined ? JSON.parse(req.query.trashed) : false;
+      const query = [];
 
-    req.query.include_docs = req.query.include_docs ? JSON.parse(req.query.include_docs) : false;
+      req.query.include_docs = req.query.include_docs ? JSON.parse(req.query.include_docs) : false;
 
-    if (children === true) {
-      children = 1;
-    }
-    if (parents === true) {
-      parents = 1;
-    }
+      if (children === true) {
+        children = 1;
+      }
+      if (parents === true) {
+        parents = 1;
+      }
 
-    if (children) {
-      req.query.include_docs = false;
-    }
-    if (parents) {
-      req.query.include_docs = true;
-    }
+      if (children) {
+        req.query.include_docs = false;
+      }
+      if (parents) {
+        req.query.include_docs = true;
+      }
 
-    query.push(trashed ? 'trashed:true' : '!trashed:true');
+      query.push(trashed ? 'trashed:true' : '!trashed:true');
 
-    if (req.session.role === 'guest') {
-      query.push('published:true');
-    }
+      if (req.session.role === 'guest') {
+        query.push('published:true');
+      }
 
-    if (req.query.query || req.query.q) {
-      query.push(req.query.query || req.query.q);
-    }
+      if (req.query.query || req.query.q) {
+        query.push(req.query.query || req.query.q);
+      }
 
-    req.query.query = query.join(' AND ');
+      req.query.query = query.join(' AND ');
 
-    const entity = new Entity(util.getConfig(config, req.session.slug));
+      const entity = new Entity(await getConfig(req.session.slug));
 
-    entity.entitySearch(req.query, children, parents, req.session.role)
-      .then(util.cacheAndSendResponse.bind(null, req, res), util.handleError.bind(null, res));
-  });
+      try {
+        handleResponse(req, res, await entity.entitySearch(req.query, children, parents, req.session.role), true);
+      } catch (error) {
+        handleError(req, res, error);
+      }
+    })
+  );
 
   /**
    * @swagger
@@ -216,45 +237,52 @@ module.exports = (util, config) => {
    *              items:
    *                $ref: '#/definitions/Entity'
    */
-  util.router.get('/entities/find.:ext?', util.cacheMiddleware, (req, res) => {
-    const query = JSON.parse(req.query.query);
-    let children = req.query.children !== undefined ? JSON.parse(req.query.children) : false;
-    let parents = req.query.parents !== undefined ? JSON.parse(req.query.parents) : false;
+  router.get(
+    '/entities/find.:ext?',
+    cacheMiddleware,
+    asyncMiddleware(async (req, res) => {
+      const query = JSON.parse(req.query.query);
+      let children = req.query.children !== undefined ? JSON.parse(req.query.children) : false;
+      let parents = req.query.parents !== undefined ? JSON.parse(req.query.parents) : false;
 
-    if (children === true) {
-      children = 1;
-    }
-    if (parents === true) {
-      parents = 1;
-    }
+      if (children === true) {
+        children = 1;
+      }
+      if (parents === true) {
+        parents = 1;
+      }
 
-    query.use_index = ['entityIndex', 'entity'];
+      query.use_index = ['entityIndex', 'entity'];
 
-    if (req.session.role === 'guest') {
-      query.selector = {
-        $and: [
-          { published: true },
-          query.selector,
-        ],
-      };
-    }
+      if (req.session.role === 'guest') {
+        query.selector = {
+          $and: [
+            { published: true },
+            query.selector,
+          ],
+        };
+      }
 
-    const entity = new Entity(util.getConfig(config, req.session.slug));
-
-    entity.entityFind(query, children, parents, req.session.role)
-      .then(util.cacheAndSendResponse.bind(null, req, res), util.handleError.bind(null, res));
-  });
-
-  util.router.get(
-    '/entities/field.:ext?',
-    util.cacheMiddleware,
-    util.asyncMiddleware(async (req, res) => {
-      const entity = new Entity(util.getConfig(config, req.session.slug));
+      const entity = new Entity(await getConfig(req.session.slug));
 
       try {
-        util.cacheAndSendResponse(req, res, await entity.fieldValues(req.query.slug || req.query.fieldSlug, req.query.searchTerm));
+        handleResponse(req, res, await entity.entityFind(query, children, parents, req.session.role), true);
       } catch (error) {
-        util.handleError(res, error);
+        handleError(req, res, error);
+      }
+    })
+  );
+
+  router.get(
+    '/entities/field.:ext?',
+    cacheMiddleware,
+    asyncMiddleware(async (req, res) => {
+      const entity = new Entity(await getConfig(req.session.slug));
+
+      try {
+        handleResponse(req, res, await entity.fieldValues(req.query.slug || req.query.fieldSlug, req.query.searchTerm), true);
+      } catch (error) {
+        handleError(res, error);
       }
     })
   );
@@ -302,10 +330,10 @@ module.exports = (util, config) => {
    *          items:
    *            $ref: '#/definitions/Entity'
    */
-  util.router.all(
+  router.all(
     '/entities.:ext?',
-    util.cacheMiddleware,
-    (req, res) => {
+    cacheMiddleware,
+    asyncMiddleware(async (req, res) => {
       let children = (req.query.children || req.body.children) !== undefined
         ? JSON.parse((req.query.children || req.body.children)) : false;
       let parents = (req.query.parents || req.body.parents) !== undefined
@@ -326,53 +354,104 @@ module.exports = (util, config) => {
 
       req.query.include_docs = true;
 
-      const entity = new Entity(util.getConfig(config, req.session.slug));
+      const entity = new Entity(await getConfig(req.session.slug));
 
-      entity.entityList(req.query, children, parents, req.session.role)
-        .then(util.cacheAndSendResponse.bind(null, req, res), util.handleError.bind(null, res));
-    }
+      try {
+        handleResponse(req, res, await entity.entityList(req.query, children, parents, req.session.role), true);
+      } catch (error) {
+        handleError(req, res, error);
+      }
+    })
   );
 
-  util.router.get('/entity/revisions.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'entityRead'), (req, res) => {
-    const entity = new Entity(util.getConfig(config, req.session.slug));
+  router.get(
+    '/entity/revisions.:ext?',
+    authMiddleware,
+    permissionMiddleware.bind(null, 'entityRead'),
+    asyncMiddleware(async (req, res) => {
+      const entity = new Entity(await getConfig(req.session.slug));
 
-    entity.entityRevisions(req.query.id)
-      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
-  });
+      try {
+        handleResponse(req, res, await entity.entityRevisions(req.query.id));
+      } catch (error) {
+        handleError(req, res, error);
+      }
+    })
+  );
 
-  util.router.post('/entity.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'entityCreate'), (req, res) => {
-    const entity = new Entity(util.getConfig(config, req.session.slug));
+  router.post(
+    '/entity.:ext?',
+    authMiddleware,
+    permissionMiddleware.bind(null, 'entityCreate'),
+    asyncMiddleware(async (req, res) => {
+      const entity = new Entity(await getConfig(req.session.slug));
 
-    entity.entityCreate(req.body.entity)
-      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
-  });
+      try {
+        handleResponse(req, res, await entity.entityCreate(req.body.entity));
+      } catch (error) {
+        handleError(req, res, error);
+      }
+    })
+  );
 
-  util.router.get('/entity.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'entityRead'), (req, res) => {
-    const entity = new Entity(util.getConfig(config, req.session.slug));
+  router.get(
+    '/entity.:ext?',
+    authMiddleware,
+    permissionMiddleware.bind(null, 'entityRead'),
+    asyncMiddleware(async (req, res) => {
+      const entity = new Entity(await getConfig(req.session.slug));
 
-    entity.entityRead(req.query.id)
-      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
-  });
+      try {
+        handleResponse(req, res, await entity.entityRead(req.query.id));
+      } catch (error) {
+        handleError(req, res, error);
+      }
+    })
+  );
 
-  util.router.put('/entity.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'entityUpdate'), (req, res) => {
-    const entity = new Entity(util.getConfig(config, req.session.slug));
+  router.put(
+    '/entity.:ext?',
+    authMiddleware,
+    permissionMiddleware.bind(null, 'entityUpdate'),
+    asyncMiddleware(async (req, res) => {
+      const entity = new Entity(await getConfig(req.session.slug));
 
-    entity.entityUpdate(req.body.entity || req.body.entities, req.body.restore || false)
-      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
-  });
+      try {
+        handleResponse(req, res, await entity.entityUpdate(req.body.entity || req.body.entities, req.body.restore || false));
+      } catch (error) {
+        handleError(req, res, error);
+      }
+    })
+  );
 
-  util.router.delete('/entity.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'entityDelete'), (req, res) => {
-    const entity = new Entity(util.getConfig(config, req.session.slug));
+  router.delete(
+    '/entity.:ext?',
+    authMiddleware,
+    permissionMiddleware.bind(null, 'entityDelete'),
+    asyncMiddleware(async (req, res) => {
+      const entity = new Entity(await getConfig(req.session.slug));
 
-    entity.entityDelete(req.body.entity || req.body.entities, req.body.forever || false)
-      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
-  });
+      try {
+        handleResponse(req, res, await entity.entityDelete(req.body.entity || req.body.entities, req.body.forever || false));
+      } catch (error) {
+        handleError(req, res, error);
+      }
+    })
+  );
 
-  util.router.delete('/entity/trashed.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'entityDelete'), (req, res) => {
-    const entity = new Entity(util.getConfig(config, req.session.slug));
+  router.delete(
+    '/entity/trashed.:ext?',
+    authMiddleware,
+    permissionMiddleware.bind(null, 'entityDelete'),
+    asyncMiddleware(async (req, res) => {
+      const entity = new Entity(await getConfig(req.session.slug));
 
-    entity.entityDelete('trashed')
-      .then(util.sendResponse.bind(null, res), util.handleError.bind(null, res));
-  });
+      try {
+        handleResponse(req, res, await entity.entityDelete('trashed'));
+      } catch (error) {
+        handleError(req, res, error);
+      }
+    })
+  );
 
 };

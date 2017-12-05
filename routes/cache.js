@@ -1,4 +1,10 @@
-module.exports = (util, config) => {
+module.exports = ({
+  router,
+  cache,
+  asyncMiddleware,
+  getConfig,
+  handleResponse,
+}) => {
 
   /**
    * @swagger
@@ -14,23 +20,28 @@ module.exports = (util, config) => {
    *      200:
    *        description: Result
    */
-  util.router.get('/cache/clear.:ext?', (req, res) => {
-    if (!config.cache) {
-      util.sendResponse(res, 'Cache disabled');
-      return;
-    }
+  router.get(
+    '/cache/clear.:ext?',
+    asyncMiddleware(async (req, res) => {
+      const config = await getConfig();
 
-    const items = [];
-
-    util.cache.forEach((value, key) => {
-      if (key.indexOf(req.session.slug) === 0) {
-        items.push(key);
+      if (!config.cache.enabled) {
+        handleResponse(req, res, 'Cache disabled');
+        return;
       }
-    });
 
-    items.forEach(key => util.cache.del(key));
+      const items = [];
 
-    util.sendResponse(res, `${items.length} items removed from cache`);
-  });
+      cache.forEach((value, key) => {
+        if (key.indexOf(req.session.slug) === 0) {
+          items.push(key);
+        }
+      });
+
+      items.forEach(key => cache.del(key));
+
+      handleResponse(req, res, `${items.length} items removed from cache`);
+    })
+  );
 
 };

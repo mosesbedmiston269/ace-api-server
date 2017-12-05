@@ -1,13 +1,26 @@
-const Shippo = require('ace-api/lib/shippo');
+module.exports = ({
+  Shippo,
+  router,
+  asyncMiddleware,
+  getConfig,
+  handleResponse,
+  handleError,
+}) => {
 
-module.exports = (util, config) => {
-  const shippo = new Shippo(config);
+  router.all(
+    '/shippo/quote.:ext?',
+    asyncMiddleware(async (req, res) => {
+      const shippo = new Shippo(await getConfig());
 
-  util.router.all('/shippo/quote.:ext?', (req, res) => {
-    const address = req.body.address || JSON.parse(req.params.address);
-    const parcel = req.body.parcel || JSON.parse(req.params.parcel);
+      const address = req.body.address || JSON.parse(req.params.address);
+      const parcel = req.body.parcel || JSON.parse(req.params.parcel);
 
-    shippo.getQuote(address, parcel)
-      .then(util.cacheAndSendResponse.bind(null, req, res), util.handleError.bind(null, res));
-  });
+      try {
+        handleResponse(req, res, await shippo.getQuote(address, parcel), true);
+      } catch (error) {
+        handleError(req, res, error);
+      }
+    })
+  );
+
 };

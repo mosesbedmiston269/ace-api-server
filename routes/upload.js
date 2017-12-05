@@ -1,75 +1,93 @@
 const path = require('path');
 const multiparty = require('connect-multiparty')();
-const Auth = require('ace-api/lib/auth');
-const Flow = require('ace-api/lib/flow');
-const File = require('ace-api/lib/file');
-const S3 = require('ace-api/lib/s3');
-const Zencode = require('ace-api/lib/zencode');
 
-module.exports = (util, config) => {
+module.exports = ({
+  File,
+  Flow,
+  S3,
+  Zencode,
+  router,
+  authMiddleware,
+  permissionMiddleware,
+  asyncMiddleware,
+  getConfig,
+  // handleResponse,
+  handleError,
+}) => {
 
-  util.router.options('/upload.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'fileCreate'), (req, res) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.status(200).send();
-  });
-
-  util.router.post('/upload.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'fileCreate'), multiparty, (req, res) => {
-    const flow = new Flow(path.join('/tmp', req.session.slug));
-
-    let options = {};
-
-    try {
-      options = JSON.parse(req.body.options);
-    } catch (error) {
-      //
+  router.options(
+    '/upload.:ext?',
+    authMiddleware,
+    permissionMiddleware.bind(null, 'fileCreate'),
+    (req, res) => {
+      res.header('Access-Control-Allow-Origin', '*');
+      res.status(200);
+      res.send();
     }
+  );
 
-    flow.saveChunk(req.files, req.body.flowChunkNumber, req.body.flowChunkSize, req.body.flowTotalChunks, req.body.flowTotalSize, req.body.flowIdentifier, req.body.flowFilename)
-      .then((uploadResult) => {
-        res.header('Access-Control-Allow-Origin', '*');
+  router.post(
+    '/upload.:ext?',
+    authMiddleware,
+    permissionMiddleware.bind(null, 'fileCreate'),
+    multiparty,
+    asyncMiddleware(async (req, res) => {
+      const flow = new Flow(path.join('/tmp', req.session.slug));
 
-        if (uploadResult.status !== 'complete') {
-          res.status(200).send(uploadResult);
-          return;
-        }
+      let options = {};
 
-        const file = new File(util.getConfig(config, req.session.slug));
-        const fileName = path.join('/tmp', req.session.slug, uploadResult.filename);
+      try {
+        options = JSON.parse(req.body.options);
+      } catch (error) {
+        //
+      }
 
-        if (options.type === 'attachment') {
+      const uploadResult = await flow.saveChunk(req.files, req.body.flowChunkNumber, req.body.flowChunkSize, req.body.flowTotalChunks, req.body.flowTotalSize, req.body.flowIdentifier, req.body.flowFilename);
+
+      res.header('Access-Control-Allow-Origin', '*');
+
+      if (uploadResult.status !== 'complete') {
+        res.status(200).send(uploadResult);
+        return;
+      }
+
+      const config = await getConfig(req.session.slug);
+
+      const file = new File(config);
+
+      const fileName = path.join('/tmp', req.session.slug, uploadResult.filename);
+
+      try {
+
+        if (/^(attachment)$/.test(options.type)) {
           const s3 = new S3(config);
 
-          s3.prepareUpload(config.aws.s3.bucket, fileName, req.session.slug)
-            .then((prepResult) => {
-              const _file = {
-                location: 's3',
-                original: prepResult.original,
-                mediaType: 'attachment',
-                uploaded: new Date(),
-                uploadedBy: req.session.userId,
-                metadata: {
-                  s3: prepResult.metadata,
-                },
-              };
+          const prep = await s3.prepareUpload(config.aws.s3.bucket, fileName, req.session.slug);
 
-              file.create(_file)
-                .then((file) => {
-                  _file.id = file.id;
+          const _file = {
+            location: 's3',
+            original: prep.original,
+            mediaType: 'attachment',
+            uploaded: new Date(),
+            uploadedBy: req.session.userId,
+            metadata: {
+              s3: prep.metadata,
+            },
+          };
 
-                  s3.upload(fileName, prepResult.uploadOptions)
-                    .then((s3Upload) => {
-                      res.status(200).send(_file);
+          _file.id = (await file.create(_file)).id;
 
-                      flow.deleteFile(uploadResult.filename);
-                    });
-                });
-            })
-            .catch(util.handleError.bind(null, res));
+          await s3.upload(fileName, prep.uploadOptions);
+
+          flow.deleteFile(uploadResult.filename);
+
+          res.status(200);
+          res.send(_file);
         }
 
         if (/^(video|audio)$/.test(options.type)) {
           const s3 = new S3(config);
-          const zencode = new Zencode(util.getConfig(config, req.session.slug));
+          const zencode = new Zencode(config);
 
           let mediaType;
           let outputs;
@@ -83,67 +101,65 @@ module.exports = (util, config) => {
             outputs = options.settings.audioOutputs;
           }
 
-          s3.prepareUpload(config.zencoder.s3.bucket, fileName, req.session.slug)
-            .then((prepResult) => {
-              const _file = {
-                location: 's3',
-                original: prepResult.original,
-                mediaType,
-                uploaded: new Date(),
-                uploadedBy: req.session.userId,
-                metadata: {
-                  s3: prepResult.metadata,
-                  zencoder: {},
-                },
-              };
+          const prep = await s3.prepareUpload(config.zencoder.s3.bucket, fileName, req.session.slug);
 
-              file.create(_file)
-                .then((file) => {
-                  _file.id = file.id;
+          const _file = {
+            location: 's3',
+            original: prep.original,
+            mediaType,
+            uploaded: new Date(),
+            uploadedBy: req.session.userId,
+            metadata: {
+              s3: prep.metadata,
+              zencoder: {},
+            },
+          };
 
-                  zencode.createJob(fileName, {
-                    mediaType,
-                    outputs,
-                    metadata: prepResult.metadata,
-                    uploadOptions: prepResult.uploadOptions,
-                  }, req.session.slug)
-                    .then((jobResult) => {
-                      _file.metadata.zencoder.job = jobResult.zencoderJob;
+          _file.id = (await file.create(_file)).id;
 
-                      zencode.checkJob(jobResult.zencoderJob.id, file.id);
+          const jobResult = await zencode.createJob(fileName, {
+            mediaType,
+            outputs,
+            metadata: prep.metadata,
+            uploadOptions: prep.uploadOptions,
+          }, req.session.slug);
 
-                      flow.deleteFile(uploadResult.filename)
-                        .then(() => {
-                          res.status(200).send(_file);
-                        }, (error) => {
-                          console.error(error);
+          _file.metadata.zencoder.job = jobResult.zencoderJob;
 
-                          res.status(200).send(_file);
-                        });
-                    });
-                });
-            })
-            .catch(util.handleError.bind(null, res));
+          zencode.checkJob(jobResult.zencoderJob.id, file.id);
+
+          await flow.deleteFile(uploadResult.filename);
+
+          res.status(200);
+          res.send(_file);
         }
 
-      }, util.handleError.bind(null, res));
-  });
+      } catch (error) {
+        handleError(req, res, error);
+      }
+    })
+  );
 
-  util.router.get('/upload.:ext?', util.authMiddleware, Auth.requirePermission.bind(null, 'fileCreate'), (req, res) => {
-    const flow = new Flow(path.join('/tmp', req.session.slug));
+  router.get(
+    '/upload.:ext?',
+    authMiddleware,
+    permissionMiddleware.bind(null, 'fileCreate'),
+    asyncMiddleware(async (req, res) => {
+      const flow = new Flow(path.join('/tmp', req.session.slug));
 
-    flow.checkChunk(req.query.flowChunkNumber, req.query.flowChunkSize, req.query.flowTotalSize, req.query.flowIdentifier, req.query.flowFilename)
-      .then(() => {
+      try {
+        await flow.checkChunk(req.query.flowChunkNumber, req.query.flowChunkSize, req.query.flowTotalSize, req.query.flowIdentifier, req.query.flowFilename);
+
         res.header('Access-Control-Allow-Origin', '*');
-        res.status(200).send();
-      }, () => {
-        res.header('Access-Control-Allow-Origin', '*');
-        res.status(204).send();
-      });
-  });
+        res.status(200);
+        res.send();
 
-  // util.router.get('/download/:identifier.:ext?', (req, res) => {
-  //   flow.write(req.param.identifier, res)
-  // })
+      } catch (error) {
+        res.header('Access-Control-Allow-Origin', '*');
+        res.status(204);
+        res.send();
+      }
+    })
+  );
 
 };

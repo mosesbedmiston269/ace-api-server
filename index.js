@@ -6,35 +6,29 @@ const CircularJSON = require('circular-json');
 const memwatch = require('memwatch-next');
 const sizeof = require('object-sizeof');
 const deepFreeze = require('deep-freeze');
-const Helpers = require('ace-api/lib/helpers');
-const Jwt = require('ace-api/lib/jwt');
-const Roles = require('ace-api/lib/roles');
-const defaultConfig = require('ace-api/config.default');
 
-function AceApiServer (app, serverConfig = {}, authMiddleware = null) {
-  const config = deepFreeze(_.merge({}, defaultConfig, serverConfig));
+const Api = require('../ace-api');
 
-  // Allowed routes
+function AceApiServer (app, serverConfig = {}, customAuthMiddleware = null) {
+  const config = deepFreeze(_.merge({}, Api.defaultConfig, serverConfig));
 
-  function isAllowedRoute (req) {
-    const allowedRoutes = [];
-    return allowedRoutes.indexOf(req.path) > -1;
-  }
+  // Skip authorisation
 
-  // Allowed development routes
-
-  function isAllowedDevRoute (req) {
+  function skipAuth (req) {
+    if (config.environment !== 'development') {
+      return false;
+    }
     const allowedRoutes = [
       '/token',
       '/email/template',
     ];
-    return config.environment === 'development' && allowedRoutes.indexOf(req.path) > -1;
+    return allowedRoutes.indexOf(req.path) > -1;
   }
 
   // Default auth middleware
 
   function defaultAuthMiddleware (req, res, next) {
-    if (isAllowedDevRoute(req)) {
+    if (skipAuth(req)) {
       next();
       return;
     }
@@ -51,7 +45,7 @@ function AceApiServer (app, serverConfig = {}, authMiddleware = null) {
     next();
   }
 
-  authMiddleware = authMiddleware || defaultAuthMiddleware;
+  const authMiddleware = customAuthMiddleware || defaultAuthMiddleware;
 
   // Permissions middleware
 
@@ -70,7 +64,7 @@ function AceApiServer (app, serverConfig = {}, authMiddleware = null) {
       return;
     }
 
-    if (!Roles.role(req.session.role) || Roles.role(req.session.role).permissions[permission] !== true) {
+    if (!Api.Roles.role(req.session.role) || Api.Roles.role(req.session.role).permissions[permission] !== true) {
       res.status(401);
       res.send({
         permission,
@@ -84,18 +78,14 @@ function AceApiServer (app, serverConfig = {}, authMiddleware = null) {
 
   // Clone and extend config per request/session
 
-  function getConfig (config, slug) {
-    const configClone = Helpers.cloneConfig(config);
-
-    configClone.slug = slug;
-    configClone.db.name = slug;
-
-    return configClone;
-  }
-
-  function getConfigAsync (config, slug) {
+  function getConfig (slug) {
     return new Promise((resolve) => {
-      resolve(getConfig(config, slug));
+      const configClone = Api.Helpers.cloneConfig(config);
+
+      configClone.slug = slug;
+      configClone.db.name = slug;
+
+      resolve(configClone);
     });
   }
 
@@ -140,32 +130,30 @@ function AceApiServer (app, serverConfig = {}, authMiddleware = null) {
 
   // Response helpers
 
-  function handleError (res, error) {
+  function handleError (req, res, error) {
     if (_.isObject(error)) {
       error = JSON.parse(CircularJSON.stringify(error));
     }
+
     const statusCode = error.statusCode || error.code || 500;
     const errorMessage = error.stack || error.error || error.message || error.body || error.data || error;
+
+    console.error(errorMessage);
+
     res.status(typeof statusCode === 'string' ? 500 : statusCode);
     res.send({
       code: statusCode,
       message: errorMessage,
     });
-    console.error(errorMessage);
   }
 
-  function sendResponse (res, response) {
-    res.status(200);
-    res.send(response);
-  }
-
-  function cacheAndSendResponse (req, res, body) {
-    if (config.cache.enabled && req.session.role === 'guest') { // TODO: Replace 'guest' with constant
-      cache.set(`${req.session.slug}${req.url}`, body);
+  function handleResponse (req, res, response, cache = false) {
+    if (cache && config.cache.enabled && req.session.role === 'guest') { // TODO: Replace 'guest' with constant
+      cache.set(`${req.session.slug}${req.url}`, response);
     }
 
     res.status(200);
-    res.send(body);
+    res.send(response);
   }
 
   // Header middleware
@@ -194,10 +182,10 @@ function AceApiServer (app, serverConfig = {}, authMiddleware = null) {
 
   // Session middleware
 
-  const jwt = new Jwt(config);
+  const jwt = new Api.Jwt(config);
 
   function sessionMiddleware (req, res, next) {
-    if (isAllowedRoute(req) || isAllowedDevRoute(req)) {
+    if (skipAuth(req)) {
       next();
       return;
     }
@@ -256,7 +244,7 @@ function AceApiServer (app, serverConfig = {}, authMiddleware = null) {
     next();
   }
 
-  // Async middleware helper
+  // Async middleware
 
   function asyncMiddleware(fn) {
     return (req, res, next) => {
@@ -293,21 +281,26 @@ function AceApiServer (app, serverConfig = {}, authMiddleware = null) {
     res.send('<pre> ______\n|A     |\n|  /\\  |\n| /  \\ |\n|(    )|\n|  )(  |\n|______|</pre>');
   });
 
-  // Utilities
+  // Context
 
-  const util = {
+  const context = {
+    app,
     router,
     cache,
-    getConfig,
-    getConfigAsync,
-    asyncMiddleware,
     authMiddleware,
     permissionMiddleware,
     cacheMiddleware,
+    asyncMiddleware,
+    getConfig,
+    handleResponse,
     handleError,
-    sendResponse,
-    cacheAndSendResponse,
   };
+
+  // Inject API into context
+
+  Object.keys(Api).forEach((key) => {
+    context[key] = Api[key];
+  });
 
   // Debugging
 
@@ -317,7 +310,7 @@ function AceApiServer (app, serverConfig = {}, authMiddleware = null) {
   }
 
   if (config.logentriesToken) {
-    util.log = new Logger({
+    context.log = new Logger({
       token: config.logentriesToken,
     });
   }
@@ -356,32 +349,32 @@ function AceApiServer (app, serverConfig = {}, authMiddleware = null) {
     });
   }
 
-  // Bootstrap API
+  // Bootstrap Routes
 
-  require('./routes/analytics')(util, config);
-  require('./routes/auth')(util, config);
-  require('./routes/cache')(util, config);
-  require('./routes/config')(util, config);
-  require('./routes/debug')(util, config);
-  require('./routes/ecommerce')(util, config);
-  require('./routes/email')(util, config);
-  require('./routes/embedly')(util, config);
-  require('./routes/entity')(util, config);
-  require('./routes/file')(util, config);
-  require('./routes/metadata')(util, config);
-  require('./routes/pdf')(util, config);
-  require('./routes/schema')(util, config);
-  require('./routes/settings')(util, config);
-  require('./routes/shippo')(util, config);
-  require('./routes/social')(util, config);
-  require('./routes/stripe')(util, config);
-  require('./routes/taxonomy')(util, config);
-  require('./routes/token')(util, config);
-  require('./routes/tools')(util, config);
-  // require('./routes/transcode')(util, config);
-  require('./routes/upload')(util, config);
-  require('./routes/user')(util, config);
-  require('./routes/zencode')(util, config);
+  require('./routes/analytics')(context, config);
+  require('./routes/auth')(context, config);
+  require('./routes/cache')(context, config);
+  require('./routes/config')(context, config);
+  require('./routes/debug')(context, config);
+  require('./routes/ecommerce')(context, config);
+  require('./routes/email')(context, config);
+  require('./routes/embedly')(context, config);
+  require('./routes/entity')(context, config);
+  require('./routes/file')(context, config);
+  require('./routes/metadata')(context, config);
+  require('./routes/pdf')(context, config);
+  require('./routes/schema')(context, config);
+  require('./routes/settings')(context, config);
+  require('./routes/shippo')(context, config);
+  require('./routes/social')(context, config);
+  require('./routes/stripe')(context, config);
+  require('./routes/taxonomy')(context, config);
+  require('./routes/token')(context, config);
+  require('./routes/tools')(context, config);
+  // require('./routes/transcode')(context, config);
+  require('./routes/upload')(context, config);
+  require('./routes/user')(context, config);
+  require('./routes/zencode')(context, config);
 }
 
 module.exports = AceApiServer;

@@ -1,68 +1,81 @@
 const Promise = require('bluebird');
-const ClientConfig = require('ace-api/lib/client-config');
-const Instagram = require('ace-api/lib/instagram');
 const Twitter = require('twitter');
 
-module.exports = (util, config) => {
-
-  const instagram = new Instagram({
-    client_id: config.instagram.clientId,
-  });
-
-  const twitter = Promise.promisifyAll(new Twitter({
-    consumer_key: config.twitter.consumerKey,
-    consumer_secret: config.twitter.consumerSecret,
-    access_token_key: config.twitter.accessTokenKey,
-    access_token_secret: config.twitter.accessTokenSecret,
-  }));
+module.exports = ({
+  ClientConfig,
+  Instagram,
+  router,
+  cacheMiddleware,
+  asyncMiddleware,
+  getConfig,
+  handleResponse,
+  handleError,
+}) => {
 
   const instagramAccessTokenMap = {};
 
-  util.router.get(
+  router.get(
     /\/social\/twitter\/([^/]+)\/?(.+)?/,
-    util.cacheMiddleware,
-    (req, res) => {
+    cacheMiddleware,
+    asyncMiddleware(async (req, res) => {
       const method = req.params[0];
       const params = req.params[1].split('/').filter(param => param !== '');
 
-      twitter[`${method}Async`](params.join('/'), req.query)
-        .then(util.cacheAndSendResponse.bind(null, req, res), util.handleError.bind(null, res));
-    }
+      const config = await getConfig(req.session.slug);
+
+      const twitter = Promise.promisifyAll(new Twitter({
+        consumer_key: config.twitter.consumerKey,
+        consumer_secret: config.twitter.consumerSecret,
+        access_token_key: config.twitter.accessTokenKey,
+        access_token_secret: config.twitter.accessTokenSecret,
+      }));
+
+      try {
+        handleResponse(req, res, await twitter[`${method}Async`](params.join('/'), req.query), true);
+      } catch (error) {
+        handleError(req, res, error);
+      }
+    })
   );
 
-  util.router.get(
+  router.get(
     /\/social\/instagram\/([^/]+)\/?(.+)?/,
-    util.cacheMiddleware,
-    util.asyncMiddleware(async (req, res) => {
+    cacheMiddleware,
+    asyncMiddleware(async (req, res) => {
       const method = req.params[0];
       const params = req.params[1].split('/').filter(param => param !== '');
 
-      const reqConfig = util.getConfig(config, req.session.slug);
+      const config = await getConfig(req.session.slug);
 
       if (!instagramAccessTokenMap[req.session.slug]) {
-        const cc = new ClientConfig(reqConfig);
+        const cc = new ClientConfig(config);
 
         try {
           const clientConfig = await cc.get();
           instagramAccessTokenMap[req.session.slug] = clientConfig.provider.instagram.access_token;
         } catch (error) {
-          util.handleError(res, new Error('Instagram: access_token required'));
+          handleError(res, new Error('Instagram: access_token required'));
           return;
         }
       }
 
       req.query.access_token = instagramAccessTokenMap[req.session.slug];
 
-      instagram[method](params.join('/'), req.query)
-        .then((response) => {
-          const result = JSON.parse(response);
-          try {
-            delete result.pagination.next_url;
-          } catch (error) {
-            //
-          }
-          util.cacheAndSendResponse(req, res, result);
-        }, util.handleError.bind(null, res));
+      const instagram = new Instagram({
+        client_id: config.instagram.clientId,
+      });
+
+      try {
+        const result = await instagram[method](params.join('/'), req.query);
+        try {
+          delete result.pagination.next_url;
+        } catch (error) {
+          //
+        }
+        handleResponse(req, res, result, true);
+      } catch (error) {
+        handleError(req, res, error);
+      }
     })
   );
 
