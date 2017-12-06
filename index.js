@@ -147,8 +147,8 @@ function AceApiServer (app, serverConfig = {}, customAuthMiddleware = null) {
     });
   }
 
-  function handleResponse (req, res, response, cache = false) {
-    if (cache && config.cache.enabled && req.session.role === 'guest') { // TODO: Replace 'guest' with constant
+  function handleResponse (req, res, response, cacheResponse = false) {
+    if (cacheResponse && config.cache.enabled && req.session.role === 'guest') { // TODO: Replace 'guest' with constant
       cache.set(`${req.session.slug}${req.url}`, response);
     }
 

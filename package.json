@@ -11,7 +11,7 @@
   "repository": "https://github.com/studiothomas/ace-api-server.git",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon dev --exec 'node -r dotenv/config'",
+    "dev": "nodemon dev --exec 'node -r dotenv/config' --inspect --watch routes",
     "docs": "gulp docs",
     "start": "npm run dev",
     "test": "echo \"Error: no test specified\" && exit 1"
