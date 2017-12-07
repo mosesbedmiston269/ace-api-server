@@ -7,7 +7,7 @@ const memwatch = require('memwatch-next');
 const sizeof = require('object-sizeof');
 const deepFreeze = require('deep-freeze');
 
-const Api = require('../ace-api');
+const Api = require('ace-api');
 
 function AceApiServer (app, serverConfig = {}, customAuthMiddleware = null) {
   const config = deepFreeze(_.merge({}, Api.defaultConfig, serverConfig));
