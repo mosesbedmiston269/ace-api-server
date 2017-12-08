@@ -22,11 +22,8 @@
     "version": "0.0.0",
     "sampleUrl": "http://localhost:5000"
   },
-  "engines": {
-    "node": "8.x"
-  },
   "dependencies": {
-    "ace-api": "^0.5.20",
+    "ace-api": "^0.5.22",
     "bluebird": "^3.5.1",
     "body-parser": "^1.18.2",
     "circular-json": "^0.4.0",
