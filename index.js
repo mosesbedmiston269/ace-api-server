@@ -9,8 +9,10 @@ const deepFreeze = require('deep-freeze');
 
 const Api = require('ace-api');
 
-function AceApiServer (app, serverConfig = {}, customAuthMiddleware = null) {
-  const config = deepFreeze(_.merge({}, Api.defaultConfig, serverConfig));
+const defaultConfig = require('./config.default');
+
+function AceApiServer (app, customConfig = {}, customAuthMiddleware = null) {
+  const config = deepFreeze(_.merge({}, Api.defaultConfig, defaultConfig, customConfig));
 
   // Skip authorisation
 
