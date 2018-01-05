@@ -266,7 +266,18 @@ module.exports = ({
       if (trashed) {
         query.selector.$and.push({ trashed: true });
       } else {
-        query.selector.$and.push({ trashed: { $ne: true } });
+        query.selector.$and.push({
+          $or: [
+            {
+              trashed: {
+                $exists: false,
+              },
+            },
+            {
+              trashed: false,
+            },
+          ],
+        });
       }
 
       if (req.session.role === 'guest') {
