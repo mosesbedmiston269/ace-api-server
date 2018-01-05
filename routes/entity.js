@@ -241,7 +241,7 @@ module.exports = ({
     '/entities/find.:ext?',
     cacheMiddleware,
     asyncMiddleware(async (req, res) => {
-      const query = JSON.parse(req.query.query);
+      const query = req.query.query ? JSON.parse(req.query.query) : { selector: {} };
       let children = req.query.children !== undefined ? JSON.parse(req.query.children) : false;
       let parents = req.query.parents !== undefined ? JSON.parse(req.query.parents) : false;
 
