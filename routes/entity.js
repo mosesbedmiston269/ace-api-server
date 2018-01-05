@@ -255,11 +255,13 @@ module.exports = ({
         parents = 1;
       }
 
-      query.selector = {
-        $and: [
-          query.selector,
-        ],
-      };
+      if (!query.selector.$and) {
+        query.selector = {
+          $and: [
+            query.selector,
+          ],
+        };
+      }
 
       if (trashed) {
         query.selector.$and.push({ trashed: true });
