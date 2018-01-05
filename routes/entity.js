@@ -241,9 +241,12 @@ module.exports = ({
     '/entities/find.:ext?',
     cacheMiddleware,
     asyncMiddleware(async (req, res) => {
-      const query = req.query.query ? JSON.parse(req.query.query) : { selector: {} };
       let children = req.query.children !== undefined ? JSON.parse(req.query.children) : false;
       let parents = req.query.parents !== undefined ? JSON.parse(req.query.parents) : false;
+      const trashed = req.query.trashed !== undefined ? JSON.parse(req.query.trashed) : false;
+      const query = req.query.query ? JSON.parse(req.query.query) : { selector: {} };
+
+      query.use_index = ['entityIndex', 'entity'];
 
       if (children === true) {
         children = 1;
@@ -252,15 +255,20 @@ module.exports = ({
         parents = 1;
       }
 
-      query.use_index = ['entityIndex', 'entity'];
+      query.selector = {
+        $and: [
+          query.selector,
+        ],
+      };
+
+      if (trashed) {
+        query.selector.$and.push({ trashed: true });
+      } else {
+        query.selector.$and.push({ trashed: { $ne: true } });
+      }
 
       if (req.session.role === 'guest') {
-        query.selector = {
-          $and: [
-            { published: true },
-            query.selector,
-          ],
-        };
+        query.selector.$and.push({ published: true });
       }
 
       const entity = new Entity(await getConfig(req.session.slug));
