@@ -23,7 +23,7 @@
     "sampleUrl": "http://localhost:5000"
   },
   "dependencies": {
-    "ace-api": "^0.5.28",
+    "ace-api": "^0.5.29",
     "bluebird": "^3.5.1",
     "body-parser": "^1.18.2",
     "circular-json": "^0.5.1",
