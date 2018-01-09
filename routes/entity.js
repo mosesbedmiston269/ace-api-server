@@ -181,10 +181,12 @@ module.exports = ({
       }
 
       if (req.query.query || req.query.q) {
-        query.push(req.query.query || req.query.q);
+        query.push(`(${req.query.query || req.query.q})`);
       }
 
       req.query.query = query.join(' AND ');
+
+      delete req.query.q;
 
       const entity = new Entity(await getConfig(req.session.slug));
 
