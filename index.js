@@ -112,7 +112,13 @@ function AceApiServer (app, customConfig = {}, customAuthMiddleware = null) {
   function cacheMiddleware (req, res, next) {
     if (config.cache.enabled) {
       const key = `${req.session.slug}${req.url}`;
-      const useCachedResponse = config.cache.enabled && cache.has(key) && req.session.role === 'guest'; // TODO: Replace 'guest' with constant
+
+      const useCachedResponse = (
+        config.cache.enabled
+        && cache.has(key)
+        && req.session.role === 'guest' // TODO: Replace 'guest' with constant
+        && (req.query.__cache && JSON.parse(req.query.__cache)) !== false
+      );
 
       if (useCachedResponse) {
         console.log('Cache usage:', Math.round((cache.length / config.cache.maxSize) * 100), '%');
