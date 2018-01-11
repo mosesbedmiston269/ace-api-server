@@ -126,7 +126,7 @@ module.exports = ({
 
           _file.metadata.zencoder.job = jobResult.zencoderJob;
 
-          zencode.checkJob(jobResult.zencoderJob.id, file.id);
+          zencode.checkJob(jobResult.zencoderJob.id, _file.id);
 
           await flow.deleteFile(uploadResult.filename);
 
