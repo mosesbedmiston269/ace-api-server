@@ -11,6 +11,8 @@ const Api = require('ace-api');
 
 const defaultConfig = require('./config.default');
 
+process.on('unhandledRejection', result => console.error(result));
+
 function AceApiServer (app, customConfig = {}, customAuthMiddleware = null) {
   const config = deepFreeze(_.merge({}, Api.defaultConfig, defaultConfig, customConfig));
 
