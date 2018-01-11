@@ -286,6 +286,10 @@ module.exports = ({
         query.selector.$and.push({ published: true });
       }
 
+      if (req.query.limit) {
+        query.limit = parseInt(req.query.limit, 10);
+      }
+
       const entity = new Entity(await getConfig(req.session.slug));
 
       try {
