@@ -201,7 +201,8 @@ function AceApiServer (app, customConfig = {}, customAuthMiddleware = null) {
       return;
     }
 
-    const referrerHostname = new URL(req.headers.referrer || req.headers.referer).hostname;
+    const referrerHostname = new URL(req.headers.referrer || req.headers.referer)
+      .hostname.split('.').slice(-2).join('.');
 
     if (config.apiBlacklistReferrer.indexOf(referrerHostname) > -1) {
       res.status(401);
