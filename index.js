@@ -201,16 +201,20 @@ function AceApiServer (app, customConfig = {}, customAuthMiddleware = null) {
       return;
     }
 
-    const referrerHostname = new URL(req.headers.referrer || req.headers.referer)
-      .hostname.split('.').slice(-2).join('.');
+    const referrer = req.headers.referrer || req.headers.referer;
 
-    if (config.apiBlacklistReferrer.indexOf(referrerHostname) > -1) {
-      res.status(401);
-      res.send({
-        code: 401,
-        message: 'Not authorised, referrer blacklisted',
-      });
-      return;
+    if (referrer) {
+      const referrerHostname = new URL(referrer)
+        .hostname.split('.').slice(-2).join('.');
+
+      if (config.apiBlacklistReferrer.indexOf(referrerHostname) > -1) {
+        res.status(401);
+        res.send({
+          code: 401,
+          message: 'Not authorised, referrer blacklisted',
+        });
+        return;
+      }
     }
 
     const token = req.headers['x-api-token'] || req.query.apiToken || req.session.apiToken;
