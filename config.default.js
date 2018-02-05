@@ -2,6 +2,8 @@ const config = {
   environment: process.env.ENVIRONMENT || 'development',
 
   apiPrefix: process.env.API_PREFIX || '',
+  apiBlacklistToken: (process.env.API_BLACKLIST_TOKEN || '').split(','),
+  apiBlacklistReferrer: (process.env.API_BLACKLIST_REFERRER || '').split(','),
 
   forceHttps: process.env.FORCE_HTTPS ? JSON.parse(process.env.FORCE_HTTPS) : false,
 

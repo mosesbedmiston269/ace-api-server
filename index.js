@@ -1,3 +1,4 @@
+const URL = require('url').URL;
 const _ = require('lodash');
 const express = require('express');
 const Logger = require('le_node');
@@ -200,6 +201,17 @@ function AceApiServer (app, customConfig = {}, customAuthMiddleware = null) {
       return;
     }
 
+    const referrerHostname = new URL(req.headers.referrer || req.headers.referer).hostname;
+
+    if (config.apiBlacklistReferrer.indexOf(referrerHostname) > -1) {
+      res.status(401);
+      res.send({
+        code: 401,
+        message: 'Not authorised, referrer blacklisted',
+      });
+      return;
+    }
+
     const token = req.headers['x-api-token'] || req.query.apiToken || req.session.apiToken;
 
     if (!token) {
@@ -211,7 +223,14 @@ function AceApiServer (app, customConfig = {}, customAuthMiddleware = null) {
       return;
     }
 
-    // TODO: check token hasn't been revoked
+    if (config.apiBlacklistToken.indexOf(token) > -1) {
+      res.status(401);
+      res.send({
+        code: 401,
+        message: 'Not authorised, token blacklisted',
+      });
+      return;
+    }
 
     try {
       const payload = jwt.verifyToken(token);
