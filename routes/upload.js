@@ -68,7 +68,7 @@ module.exports = ({
             location: 's3',
             original: prep.original,
             mediaType: 'attachment',
-            uploaded: new Date(),
+            uploadedAt: new Date(),
             uploadedBy: req.session.userId,
             metadata: {
               s3: prep.metadata,
@@ -107,7 +107,7 @@ module.exports = ({
             location: 's3',
             original: prep.original,
             mediaType,
-            uploaded: new Date(),
+            uploadedAt: new Date(),
             uploadedBy: req.session.userId,
             metadata: {
               s3: prep.metadata,
