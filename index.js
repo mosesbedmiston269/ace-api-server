@@ -4,7 +4,6 @@ const express = require('express');
 const Logger = require('le_node');
 const lru = require('lru-cache');
 const CircularJSON = require('circular-json');
-const memwatch = require('memwatch-next');
 const sizeof = require('object-sizeof');
 const deepFreeze = require('deep-freeze');
 
@@ -336,13 +335,6 @@ function AceApiServer (app, customConfig = {}, customAuthMiddleware = null) {
     context[key] = Api[key];
   });
 
-  // Debugging
-
-  if (config.environment !== 'production') {
-    // require('trace');
-    require('clarify');
-  }
-
   if (config.logentriesToken) {
     context.log = new Logger({
       token: config.logentriesToken,
@@ -352,33 +344,12 @@ function AceApiServer (app, customConfig = {}, customAuthMiddleware = null) {
   function afterResponse (req, res) {
     res.removeListener('finish', afterResponse);
     res.removeListener('close', afterResponse);
-
-    if (req.query.heapdiff) {
-      const diff = res._hd.end();
-      diff.change.details.forEach((detail) => {
-        if (/^(Array|Object|String)$/.test(detail.what)) {
-          console.log('Heap diff', detail);
-        }
-      });
-    }
-
-    if (req.query.heapdump) {
-      const heapdump = require('heapdump');
-      heapdump.writeSnapshot((error, filename) => {
-        console.log('Heap dump written to', filename);
-      });
-    }
   }
 
   if (config.environment !== 'production') {
     app.use((req, res, next) => {
       res.on('finish', afterResponse.bind(null, req, res));
       res.on('close', afterResponse.bind(null, req, res));
-
-      if (req.query.heapdiff) {
-        res._hd = new memwatch.HeapDiff();
-      }
-
       next();
     });
   }
