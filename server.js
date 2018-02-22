@@ -14,7 +14,7 @@ const session = require('express-session');
 
 const AceApiServer = require('./index');
 
-function Serve (config = {}) {
+function Serve (config = {}, listen = true) {
   const app = express();
   app.use(helmet());
   app.use(errorHandler());
@@ -39,11 +39,15 @@ function Serve (config = {}) {
 
   AceApiServer(app, config);
 
-  const server = http.createServer(app);
-  server.on('listening', () => {
-    console.log(`http://${HOST}:${PORT}`);
-  });
-  server.listen(PORT);
+  if (listen) {
+    const server = http.createServer(app);
+    server.on('listening', () => {
+      console.log(`http://${HOST}:${PORT}`);
+    });
+    server.listen(PORT);
+  }
+
+  return app;
 }
 
 module.exports = Serve;
